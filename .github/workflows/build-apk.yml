@@ -136,8 +136,26 @@ jobs:
       - name: 赋予 Gradle 执行权限
         run: chmod +x android/gradlew
 
+      - name: 读取应用名称（供后续步骤使用）
+        id: app_info
+        run: |
+          if [ -f app-name.b64 ]; then
+            APP_NAME=$(cat app-name.b64 | tr -d '\r\n' | base64 -d 2>/dev/null)
+            echo "name=${APP_NAME}" >> $GITHUB_OUTPUT
+          else
+            echo "name=MyApp" >> $GITHUB_OUTPUT
+          fi
+          echo "version=$(date +'%Y%m%d.%H%M')" >> $GITHUB_OUTPUT
+
       - name: 编译 Debug APK
         run: cd android && ./gradlew assembleDebug
+
+      - name: 重命名 APK（带应用名和版本号）
+        run: |
+          APP_NAME="${{ steps.app_info.outputs.name }}"
+          VERSION="${{ steps.app_info.outputs.version }}"
+          echo "APP_NAME=${APP_NAME}, VERSION=${VERSION}"
+          cp android/app/build/outputs/apk/debug/app-debug.apk "${APP_NAME}_v${VERSION}.apk"
 
       - name: 上传 APK 制品
         uses: actions/upload-artifact@v4
@@ -145,3 +163,81 @@ jobs:
           name: app-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 90
+
+  # ============================================================
+  # Release 任务：自动创建 GitHub Release 并上传 APK
+  # ============================================================
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 检出代码（用于读取 app-name.b64）
+        uses: actions/checkout@v4
+
+      - name: 读取应用信息
+        id: app_info
+        run: |
+          if [ -f app-name.b64 ]; then
+            APP_NAME=$(cat app-name.b64 | tr -d '\r\n' | base64 -d 2>/dev/null)
+            echo "name=${APP_NAME}" >> $GITHUB_OUTPUT
+          else
+            echo "name=MyApp" >> $GITHUB_OUTPUT
+          fi
+          echo "version=$(date +'%Y%m%d.%H%M')" >> $GITHUB_OUTPUT
+          echo "tag=v$(date +'%Y%m%d.%H%M')" >> $GITHUB_OUTPUT
+
+      - name: 下载构建好的 APK
+        uses: actions/download-artifact@v4
+        with:
+          name: app-debug-apk
+          path: release-artifacts
+
+      - name: 重命名 APK（带应用名）
+        run: |
+          APP_NAME="${{ steps.app_info.outputs.name }}"
+          VERSION="${{ steps.app_info.outputs.version }}"
+          mv release-artifacts/app-debug.apk "release-artifacts/${APP_NAME}_v${VERSION}.apk"
+          echo "APK 已重命名: ${APP_NAME}_v${VERSION}.apk"
+
+      - name: 删除旧版本 Release（只保留最新）
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "=== 列出所有旧 Release ==="
+          # gh CLI 在 GitHub Actions runner 中已预装
+          gh release list --limit 100 --json tagName,isLatest --jq '.[] | select(.isLatest == false) | .tagName' > /tmp/old_releases.txt
+          cat /tmp/old_releases.txt
+          echo ""
+
+          # 逐个删除旧 Release
+          while IFS= read -r tag; do
+            if [ -n "$tag" ]; then
+              echo "删除旧 Release: $tag"
+              gh release delete "$tag" --yes --cleanup-tag 2>/dev/null || echo "  删除 $tag 失败（可能已被删除）"
+            fi
+          done < /tmp/old_releases.txt
+
+          echo "=== 旧版本清理完成 ==="
+
+      - name: 创建/更新 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.app_info.outputs.tag }}
+          name: ${{ steps.app_info.outputs.name }} v${{ steps.app_info.outputs.version }}
+          body: |
+            ## ${{ steps.app_info.outputs.name }} 自动构建
+
+            - 构建时间：${{ github.event.repository.updated_at }}
+            - 提交：${{ github.sha }}
+            - 触发：${{ github.event_name }}
+
+            ### 下载
+            - APK 文件见附件
+          files: release-artifacts/*.apk
+          generate_release_notes: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
