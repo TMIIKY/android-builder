@@ -1,0 +1,147 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 设置 Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: 缓存 npm 依赖
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: 安装 Capacitor 依赖（锁定版本）
+        run: npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/filesystem@6 @capacitor/share@6 @capacitor/assets@3 typescript
+
+      - name: 设置应用名称并生成 capacitor.config.ts
+        run: |
+          # Read app name from Base64 file (avoids encoding issues)
+          if [ -f app-name.b64 ]; then
+            APP_NAME=$(cat app-name.b64 | tr -d '\r\n' | base64 -d 2>/dev/null)
+            echo "App Name decoded: ${APP_NAME}"
+          elif [ -f capacitor.config.ts ]; then
+            APP_NAME=$(grep -oP "appName:\s*'\K[^']+" capacitor.config.ts || echo "MyApp")
+            echo "App Name from config: ${APP_NAME}"
+          else
+            APP_NAME="MyApp"
+          fi
+
+          # Read app id from capacitor.config.ts or use default
+          if [ -f capacitor.config.ts ]; then
+            APP_ID=$(grep -oP "appId:\s*'\K[^']+" capacitor.config.ts || echo "com.app.lingmo")
+          else
+            APP_ID="com.app.lingmo"
+          fi
+
+          echo "App ID: ${APP_ID}"
+
+          # Generate capacitor.config.ts with correct values
+          cat > capacitor.config.ts << CAPEOF
+          import { CapacitorConfig } from '@capacitor/cli';
+          const config: CapacitorConfig = {
+            appId: '${APP_ID}',
+            appName: '${APP_NAME}',
+            webDir: 'www',
+            plugins: {
+              Filesystem: {}
+            },
+            android: {
+              allowMixedContent: true
+            }
+          };
+          export default config;
+          CAPEOF
+
+          echo "Final capacitor.config.ts:"
+          cat capacitor.config.ts
+
+      - name: 整理网页文件到 www 目录
+        run: |
+          echo "=== 项目根目录文件列表 ==="
+          ls -la
+          mkdir -p www
+          for item in *; do
+            case "$item" in
+              www|.git|node_modules|android|ios|assets|icon.png|app-name.b64|.github)
+                ;;
+              *)
+                echo "复制: $item -> www/"
+                cp -r "$item" www/ 2>/dev/null || echo "  复制 $item 失败"
+                ;;
+            esac
+          done
+          # 复制 Capacitor JS bridge 文件到 www 目录（供 index.html 引用）
+          cp node_modules/@capacitor/core/dist/capacitor.js www/capacitor-core.js
+          cp node_modules/@capacitor/filesystem/dist/plugin.js www/capacitor-filesystem.js
+          cp node_modules/@capacitor/share/dist/plugin.js www/capacitor-share.js
+          # 验证 index.html 存在
+          echo "=== www 目录内容 ==="
+          ls -la www/
+          if [ ! -f www/index.html ]; then
+            echo "ERROR: www/index.html 不存在！"
+            exit 1
+          fi
+          echo "index.html 验证通过"
+
+      - name: 添加 Android 平台
+        run: npx cap add android
+
+      - name: 同步网页文件到 Android
+        run: |
+          npx cap sync
+          echo "=== 验证 Android assets ==="
+          ls -la android/app/src/main/assets/ 2>/dev/null || echo "WARNING: assets/ not found!"
+
+      - name: 生成应用图标（如果有 assets/icon.png）
+        run: |
+          if [ -f assets/icon.png ]; then
+            echo "找到 assets/icon.png，开始生成图标..."
+            npx @capacitor/assets generate --android --iconBackgroundColor '#FFFFFF' --iconBackgroundColorDark '#1F1F1F'
+            echo "图标生成完成"
+          else
+            echo "未找到 assets/icon.png，跳过图标生成（将使用默认图标）"
+          fi
+
+      - name: 注入自定义 Java 桥接代码（JavascriptInterface）
+        run: |
+          echo "=== 注入 Java 桥接代码 ==="
+          # inject_javabridge.py 在整理 www 时被复制到了 www/ 目录
+          if [ -f www/inject_javabridge.py ]; then
+            cp www/inject_javabridge.py inject_javabridge.py
+          fi
+          python3 inject_javabridge.py
+
+      - name: 赋予 Gradle 执行权限
+        run: chmod +x android/gradlew
+
+      - name: 编译 Debug APK
+        run: cd android && ./gradlew assembleDebug
+
+      - name: 上传 APK 制品
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 90

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>灵墨 · 架构深度分析报告 v2.0</title>
+<style>
+:root {
+  --bg: #f8f6f0;
+  --card: #fff;
+  --text: #2c2c2c;
+  --muted: #888;
+  --accent: #6366f1;
+  --danger: #ef4444;
+  --warn: #f59e0b;
+  --success: #10b981;
+  --p0: #ef4444;
+  --p1: #f59e0b;
+  --p2: #6366f1;
+}
+body { max-width: 1100px; margin: 0 auto; padding: 24px; font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg); color: var(--text); line-height: 1.8; }
+h1 { font-size: 28px; color: #1a1a2e; border-bottom: 3px solid var(--accent); padding-bottom: 12px; margin-bottom: 8px; }
+h2 { font-size: 22px; color: #1a1a2e; margin-top: 36px; padding-left: 12px; border-left: 4px solid var(--accent); }
+h3 { font-size: 17px; color: #333; margin-top: 24px; }
+.subtitle { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+.card { background: var(--card); border-radius: 12px; padding: 20px; margin: 16px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; color: #fff; }
+.tag-p0 { background: var(--p0); }
+.tag-p1 { background: var(--p1); }
+.tag-p2 { background: var(--p2); }
+.tag-info { background: #6b7280; }
+.issue { margin: 12px 0; padding: 12px 16px; border-left: 4px solid; border-radius: 0 8px 8px 0; background: #fafafa; }
+.issue.p0 { border-color: var(--p0); }
+.issue.p1 { border-color: var(--p1); }
+.issue.p2 { border-color: var(--p2); }
+.issue-title { font-weight: 600; margin-bottom: 4px; }
+.issue-detail { font-size: 14px; color: #555; }
+.issue-file { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.issue-fix { font-size: 13px; color: var(--success); margin-top: 6px; }
+pre { background: #1e1e2e; color: #cdd6f4; padding: 12px 16px; border-radius: 8px; font-size: 13px; overflow-x: auto; }
+code { font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 13px; }
+.arch-diagram { background: var(--card); padding: 20px; border-radius: 12px; margin: 16px 0; }
+.arch-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.arch-box { flex: 1; min-width: 160px; background: linear-gradient(135deg, #f0f0ff, #e8e8ff); padding: 16px; border-radius: 8px; text-align: center; font-size: 13px; }
+.arch-box strong { display: block; margin-bottom: 6px; color: var(--accent); }
+.arch-box.warn { background: linear-gradient(135deg, #fff3cd, #ffe69c); }
+.arch-box.danger { background: linear-gradient(135deg, #fce4ec, #f8bbd0); }
+.arch-box.ok { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); }
+table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+th { background: #f0f0ff; padding: 10px; text-align: left; font-weight: 600; }
+td { padding: 10px; border-bottom: 1px solid #eee; }
+.section-summary { font-size: 15px; margin: 8px 0 20px; padding: 12px 16px; background: #f0f0ff; border-radius: 8px; }
+.progress-bar { height: 8px; background: #eee; border-radius: 4px; overflow: hidden; margin: 8px 0; }
+.progress-fill { height: 100%; border-radius: 4px; }
+.p0-fill { background: var(--p0); }
+.p1-fill { background: var(--p1); }
+.p2-fill { background: var(--p2); }
+</style>
+</head>
+<body>
+
+<h1>灵墨 · 架构深度分析报告 v2.0</h1>
+<p class="subtitle">生成时间：2026-06-28 · 分析范围：全量 11 个 JS 模块 + HTML 入口 + 数据流 · 对比 YZTurboWebAndroid Skill 规范</p>
+
+<!-- ====== 架构总览 ====== -->
+<h2>一、架构总览</h2>
+
+<div class="arch-diagram">
+  <h3>模块依赖图</h3>
+  <div class="arch-row">
+    <div class="arch-box ok">
+      <strong>入口层</strong>
+      index.html<br>11 脚本顺序加载
+    </div>
+    <div class="arch-box ok">
+      <strong>数据层</strong>
+      storage.js<br>localStorage + IndexedDB
+    </div>
+    <div class="arch-box warn">
+      <strong>桥接层</strong>
+      android-bridge.js<br>NativeShare / NativeBridge / WebViewReady
+    </div>
+  </div>
+  <div class="arch-row" style="margin-top:12px">
+    <div class="arch-box ok">
+      <strong>AI 服务层</strong>
+      ai-service.js<br>6 厂商适配 / 超时控制
+    </div>
+    <div class="arch-box ok">
+      <strong>创作流程层</strong>
+      workflow.js / plan-manager.js / guide.js / brainstorm.js
+    </div>
+    <div class="arch-box warn">
+      <strong>应用逻辑层</strong>
+      app.js (1725行)<br>UI 编排 + 章节生成核心
+    </div>
+  </div>
+  <div class="arch-row" style="margin-top:12px">
+    <div class="arch-box ok">
+      <strong>导出/备份层</strong>
+      data-backup.js<br>Capacitor / NativeShare / 降级
+    </div>
+    <div class="arch-box ok">
+      <strong>封面层</strong>
+      cover-engine.js<br>预设 + AI 生成
+    </div>
+    <div class="arch-box"></div>
+  </div>
+</div>
+
+<div class="section-summary">
+  <strong>数据流总结：</strong>
+  app.js → Storage (localStorage 元数据 + IndexedDB 正文) → DataBackup (文件级备份) → NativeShare (分享/导出)
+  <br>
+  <strong>AI 调用链：</strong> app.js/Brainstorm/Guide/Workflow → AIService.callAPI → fetch() → AI Provider
+  <br>
+  <strong>关键问题：</strong> app.js 承载了过多职责（1725行），是架构中最脆弱的环节；localStorage 与 IndexedDB 双写存在竞态风险
+</div>
+
+<!-- ====== 严重缺陷 ====== -->
+<h2>二、严重缺陷 (P0 - 可导致数据丢失或功能崩溃)</h2>
+
+<div class="issue p0">
+  <div class="issue-title"><span class="tag tag-p0">P0</span> #1：备份导出不包含 IndexedDB 正文数据</div>
+  <div class="issue-detail">
+    <strong>根因：</strong><code>DataBackup.collectAllData()</code> 仅收集 localStorage 中的数据（通过 key 前缀匹配），而章节正文实际存储在 IndexedDB 中。<code>Storage.saveChapters()</code> 会将 content 字段从元数据中剥离（替换为 _hasContent 标记）。
+  </div>
+  <div class="issue-detail">
+    <strong>影响：</strong>用户导出备份后，如果清空数据再导入，所有章节正文会丢失（元数据恢复但正文为空）。
+  </div>
+  <div class="issue-file">文件：data-backup.js:299-326 (collectAllData), storage.js:433-453 (saveChapters)</div>
+  <div class="issue-fix">✅ 建议：在 collectAllData 中增加 IndexedDB 数据收集，或实现 exportAll() 方法将 IndexedDB 章节也打包到备份中。</div>
+</div>
+
+<div class="issue p0">
+  <div class="issue-title"><span class="tag tag-p0">P0</span> #2：generateChapters() 中 saveChapters 使用异步版本，未等待 IndexedDB 写入</div>
+  <div class="issue-detail">
+    <strong>根因：</strong><code>app.js:727</code> 行调用 <code>Storage.saveChapters(bookId, existingChapters)</code>（异步版本），紧接着就开始 AI 生成流程。如果此时发生异常或 App 崩溃，空壳章节已创建但正文未写入 IndexedDB。
+  </div>
+  <div class="issue-file">文件：app.js:727</div>
+  <div class="issue-fix">✅ 建议：改用 <code>await Storage.saveChaptersSync()</code> 确保空壳章节写入完成后再开始 AI 生成。</div>
+</div>
+
+<div class="issue p0">
+  <div class="issue-title"><span class="tag tag-p0">P0</span> #3：updateChapterTitle() 使用异步 saveChapters，可能导致标题丢失</div>
+  <div class="issue-detail">
+    <strong>根因：</strong><code>app.js:1316</code> 行用户编辑章节标题后调用 <code>Storage.saveChapters()</code>（异步），未等待 IndexedDB 同步。如果用户快速切换到其他页面，元数据更新可能未完成。
+  </div>
+  <div class="issue-file">文件：app.js:1310-1319</div>
+  <div class="issue-fix">✅ 建议：关键写操作统一使用 saveChaptersSync。</div>
+</div>
+
+<div class="issue p0">
+  <div class="issue-title"><span class="tag tag-p0">P0</span> #4：deleteChapter() 删除章节但未同步清理 IndexedDB</div>
+  <div class="issue-detail">
+    <strong>根因：</strong><code>app.js:1331</code> 行调用 <code>Storage.deleteChapter()</code>，但该方法内部只调用 <code>saveChapters()</code>（异步），未显式清理 IndexedDB 中的章节正文。如果 deleteChapter 方法只更新了 localStorage 元数据，IndexedDB 中的正文不会被删除。
+  </div>
+  <div class="issue-file">文件：storage.js (deleteChapter 方法), app.js:1331</div>
+  <div class="issue-fix">✅ 建议：在 Storage.deleteChapter 中显式调用 ChapterDB.deleteContent() 清理 IndexedDB。</div>
+</div>
+
+<!-- ====== 高风险缺陷 ====== -->
+<h2>三、高风险缺陷 (P1 - 影响用户体验但非致命)</h2>
+
+<div class="issue p1">
+  <div class="issue-title"><span class="tag tag-p1">P1</span> #5：localStorage 容量溢出风险 — 大规模数据时备份/导出失败</div>
+  <div class="issue-detail">
+    <strong>根因：</strong>localStorage 有 5-10MB 上限。当用户创作大量书籍（如 20 本 × 500 章），元数据（chapters_*、memory_*、plans_*）累积可能接近上限。storage.js 虽有 _emergencyCleanup 机制但仅删除 reviews_ 和 specs_，释放空间有限。
+  </div>
+  <div class="issue-detail">
+    <strong>影响：</strong>写操作静默失败、自动备份因数据过大被跳过、用户操作丢失。
+  </div>
+  <div class="issue-file">文件：storage.js:261-286 (_emergencyCleanup), storage.js:200-209 (_triggerAutoBackup)</div>
+  <div class="issue-fix">✅ 建议：增加存储用量监控面板；将 chapters 元数据也迁移到 IndexedDB；定期压缩 memory 中的冗余数据。</div>
+</div>
+
+<div class="issue p1">
+  <div class="issue-title"><span class="tag tag-p1">P1</span> #6：AI 调用无重试机制 — 网络波动时单次失败即终止</div>
+  <div class="issue-detail">
+    <strong>根因：</strong><code>AIService.callAPI()</code> 没有内置重试逻辑。AI 生成章节（generateChapters）循环中，一个章节失败后直接跳过继续下一个，但如果是临时网络抖动，重试可能成功。
+  </div>
+  <div class="issue-file">文件：ai-service.js:91-132 (callAPI), app.js:915-919 (catch 块)</div>
+  <div class="issue-fix">✅ 建议：在 callAPI 中增加指数退避重试（最多 3 次），只对网络错误和 5xx 重试，4xx 不重试。</div>
+</div>
+
+<div class="issue p1">
+  <div class="issue-title"><span class="tag tag-p1">P1</span> #7：buildContextMemory 在长篇小说中可能超出模型上下文窗口</div>
+  <div class="issue-detail">
+    <strong>根因：</strong>虽然 buildContextMemory 已做了分层截断（近期完整、前期采样），但对于 500 章的小说，聚合后的 context 仍可能达到 10K+ tokens。加上前文结尾 500 字 × 3 章 + Spec 1500 字 + System Prompt 3K 字，总计可能超过 20K tokens。
+  </div>
+  <div class="issue-file">文件：storage.js:778-954 (buildContextMemory)</div>
+  <div class="issue-fix">✅ 建议：在 buildContextMemory 中增加 token 估算和硬截断；提供"压缩模式"选项。</div>
+</div>
+
+<div class="issue p1">
+  <div class="issue-title"><span class="tag tag-p1">P1</span> #8：generateChapters 并发生成无节流控制</div>
+  <div class="issue-detail">
+    <strong>根因：</strong><code>app.js:737-920</code> 行用 <code>for</code> 循环逐个生成章节，但每次调用 AI API 后立即进行记忆更新、矛盾检测。如果用户选择生成 5 章，整个过程可能耗时 5-10 分钟。期间如果网络中断或 API 限流，后续章节全部失败。
+  </div>
+  <div class="issue-file">文件：app.js:737-920</div>
+  <div class="issue-fix">✅ 建议：在每次 AI 调用之间加入最小间隔（如 1 秒）；增加失败重试次数（如每章最多重试 2 次）。</div>
+</div>
+
+<div class="issue p1">
+  <div class="issue-title"><span class="tag tag-p1">P1</span> #9：脚本加载顺序依赖 — 单个模块加载失败导致全局崩溃</div>
+  <div class="issue-detail">
+    <strong>根因：</strong><code>index.html:391-402</code> 行按顺序加载 11 个脚本，后续脚本依赖前面的全局变量。如果任何一个脚本加载失败（如 CDN 问题、网络故障），后续所有脚本都会报错。
+  </div>
+  <div class="issue-file">文件：index.html:391-402</div>
+  <div class="issue-fix">✅ 建议：每个模块在顶部添加 <code>typeof X !== 'undefined'</code> 检查；或使用模块加载器。</div>
+</div>
+
+<!-- ====== 中风险缺陷 ====== -->
+<h2>四、中风险缺陷 (P2 - 影响特定功能或场景)</h2>
+
+<div class="issue p2">
+  <div class="issue-title"><span class="tag tag-p2">P2</span> #10：Brainstorm 对话状态无持久化</div>
+  <div class="issue-detail">
+    <strong>根因：</strong>Brainstorm 的 messages 数组存储在内存中。如果用户切换 tab 或刷新页面，对话历史全部丢失。只有成功创建书籍后，对话内容才被遗忘。
+  </div>
+  <div class="issue-file">文件：brainstorm.js:7-18 (state)</div>
+  <div class="issue-fix">✅ 建议：将 Brainstorm 的 messages 存入 sessionStorage，页面刷新后可恢复。</div>
+</div>
+
+<div class="issue p2">
+  <div class="issue-title"><span class="tag tag-p2">P2</span> #11：Guide 引导流程状态无持久化</div>
+  <div class="issue-detail">
+    <strong>根因：</strong>同 Brainstorm，Guide.state 存储在内存中。用户在引导流程中如果返回或刷新，所有进度丢失。
+  </div>
+  <div class="issue-file">文件：guide.js:6-15 (state)</div>
+  <div class="issue-fix">✅ 建议：将 Guide.state 存入 localStorage（如 guide_state_{bookId}），支持恢复。</div>
+</div>
+
+<div class="issue p2">
+  <div class="issue-title"><span class="tag tag-p2">P2</span> #12：书架渲染性能问题 — 每次 renderBookshelf 都遍历全部书籍</div>
+  <div class="issue-detail">
+    <strong>根因：</strong><code>app.js:224-267</code> 行，每本书都要调用 <code>Storage.getChapters()</code> 和 <code>Storage.getPlans()</code> 来计算进度。书架有 50+ 本书时，每次渲染触发 50+ 次 localStorage 读取和字符串解析。
+  </div>
+  <div class="issue-file">文件：app.js:224-267</div>
+  <div class="issue-fix">✅ 建议：在 saveChapters 时同步更新书的进度字段到 books 数组中，渲染时直接读取。</div>
+</div>
+
+<div class="issue p2">
+  <div class="issue-title"><span class="tag tag-p2">P2</span> #13：showBookDetail 每次调用都重新解析章节规划正则</div>
+  <div class="issue-detail">
+    <strong>根因：</strong><code>app.js:381</code> 行 <code>plans.chapter_plan.match(/第(\d+)章/g)</code> 每次都重新匹配全文，对于大段章节规划文本（如 10K 字），正则匹配开销较大。
+  </div>
+  <div class="issue-file">文件：app.js:381-398</div>
+  <div class="issue-fix">✅ 建议：在 savePlan 时将解析结果缓存到 plans 对象中。</div>
+</div>
+
+<div class="issue p2">
+  <div class="issue-title"><span class="tag tag-p2">P2</span> #14：IndexedDB 无版本迁移机制</div>
+  <div class="issue-detail">
+    <strong>根因：</strong>ChapterDB 的 DB_VERSION 固定为 1。如果未来需要修改存储结构（如增加字段），需要手动处理迁移。当前没有版本检查和迁移逻辑。
+  </div>
+  <div class="issue-file">文件：storage.js:17</div>
+  <div class="issue-fix">✅ 建议：在 onupgradeneeded 中增加版本判断和迁移逻辑。</div>
+</div>
+
+<div class="issue p2">
+  <div class="issue-title"><span class="tag tag-p2">P2</span> #15：AI API Key 明文存储在 localStorage</div>
+  <div class="issue-detail">
+    <strong>根因：</strong>虽然 <code>AIService.obfuscateKey()</code> 使用了简单的 XOR 混淆，但密钥和算法都暴露在 JS 源码中。有 root 权限的设备或恶意代码可以直接解密。
+  </div>
+  <div class="issue-file">文件：ai-service.js:77-89</div>
+  <div class="issue-fix">✅ 建议：使用 Android Keystore / iOS Keychain 存储密钥；或提示用户风险。</div>
+</div>
+
+<div class="issue p2">
+  <div class="issue-title"><span class="tag tag-p2">P2</span> #16：pickFile 中的 _pickFileStub 引用未定义</div>
+  <div class="issue-detail">
+    <strong>根因：</strong><code>android-bridge.js:253</code> 行检查 <code>window.__onFilePicked !== _pickFileStub</code>，但 <code>_pickFileStub</code> 变量从未定义。虽然不会导致崩溃（undefined 比较），但比较逻辑无意义。
+  </div>
+  <div class="issue-file">文件：android-bridge.js:253</div>
+  <div class="issue-fix">✅ 建议：修正比较逻辑或删除无用的 _pickFileStub 引用。</div>
+</div>
+
+<!-- ====== YZTurboWebAndroid 对比分析 ====== -->
+<h2>五、YZTurboWebAndroid Skill 对齐分析</h2>
+
+<div class="section-summary">
+  对比 YZTurboWebAndroid Skill 规范，当前项目存在以下差距：
+</div>
+
+<table>
+  <tr>
+    <th>Skill 要求</th>
+    <th>当前状态</th>
+    <th>差距</th>
+  </tr>
+  <tr>
+    <td>WebView 池化复用 (poolSize)</td>
+    <td><span style="color:var(--danger)">❌ 未实现</span></td>
+    <td>应用未使用 WebViewFragment 池，每次打开都是新建 WebView</td>
+  </tr>
+  <tr>
+    <td>离线包管理</td>
+    <td><span style="color:var(--danger)">❌ 未实现</span></td>
+    <td>没有离线资源拦截，所有页面依赖网络加载</td>
+  </tr>
+  <tr>
+    <td>JS Bridge 双向通信</td>
+    <td><span style="color:var(--warn)">⚠ 部分实现</span></td>
+    <td>已有 NativeBridge 协议层，但缺少原生端对应的 Handler 注册机制</td>
+  </tr>
+  <tr>
+    <td>hostHide 事件监听</td>
+    <td><span style="color:var(--danger)">❌ 未实现</span></td>
+    <td>WebView 回收时无法通知前端清理 UI</td>
+  </tr>
+  <tr>
+    <td>WebView 预加载</td>
+    <td><span style="color:var(--warn)">⚠ 部分实现</span></td>
+    <td>有 WebViewReady 轮询检测，但没有真正的预加载机制</td>
+  </tr>
+  <tr>
+    <td>Context 安全切换</td>
+    <td><span style="color:var(--success)">✅ 已实现</span></td>
+    <td>通过 AndroidBackStack 管理栈深度</td>
+  </tr>
+</table>
+
+<!-- ====== 使用中可能遇到的问题 ====== -->
+<h2>六、使用过程中可能出现的问题</h2>
+
+<table>
+  <tr>
+    <th>场景</th>
+    <th>问题</th>
+    <th>触发条件</th>
+  </tr>
+  <tr>
+    <td>长时间生成</td>
+    <td>生成 5 章时，第 3 章失败后第 4、5 章继续尝试但可能因为 API 限流全部失败</td>
+    <td>API 速率限制 / 网络波动</td>
+  </tr>
+  <tr>
+    <td>导出备份</td>
+    <td>导出文件不含章节正文，导入后正文丢失</td>
+    <td>用户导出 → 清空数据 → 导入</td>
+  </tr>
+  <tr>
+    <td>书架加载</td>
+    <td>书籍较多时（50+），切换书架 tab 明显卡顿</td>
+    <td>每次切换都重新读取所有书的数据</td>
+  </tr>
+  <tr>
+    <td>内存溢出</td>
+    <td>Brainstorm 对话过长时，消息历史占用内存，渲染变慢</td>
+    <td>长时间不刷新的对话</td>
+  </tr>
+  <tr>
+    <td>localStorage 满</td>
+    <td>创建多本长篇后，写操作静默失败，数据丢失</td>
+    <td>多本书 × 多章 × 大段规划文本</td>
+  </tr>
+  <tr>
+    <td>跨设备迁移</td>
+    <td>换手机后导入备份，正文丢失</td>
+    <td>备份不含 IndexedDB 数据</td>
+  </tr>
+  <tr>
+    <td>网络代理</td>
+    <td>用户使用代理时，fetch 可能被拦截导致 AI 调用失败</td>
+    <td>企业网络 / 代理环境</td>
+  </tr>
+  <tr>
+    <td>WebView 重建</td>
+    <td>Android 系统回收 WebView 后，内存状态丢失</td>
+    <td>应用后台切换 / 内存不足</td>
+  </tr>
+  <tr>
+    <td>API Key 泄露</td>
+    <td>明文混淆存储，可被逆向工程破解</td>
+    <td>APK 反编译 / 设备被 root</td>
+  </tr>
+  <tr>
+    <td>多 Tab 并发</td>
+    <td>两个 tab 同时打开同一本书，可能产生数据竞态</td>
+    <td>快速切换 tab + 同时操作</td>
+  </tr>
+</table>
+
+<!-- ====== 修复优先级建议 ====== -->
+<h2>七、修复优先级建议</h2>
+
+<div class="section-summary">
+  <strong>立即修复 (本周)：</strong>P0 #1（备份不含 IndexedDB） → P0 #2（generateChapters 异步） → P0 #4（deleteChapter 清理）
+  <br>
+  <strong>近期修复 (本月)：</strong>P1 #5（localStorage 容量） → P1 #6（AI 重试） → P1 #9（加载容错）
+  <br>
+  <strong>后续优化：</strong>P2 全部 + YZTurboWebAndroid 对齐（离线包、WebView 池）
+</div>
+
+<h2>八、架构健康度评估</h2>
+
+<table>
+  <tr>
+    <th>维度</th>
+    <th>评分</th>
+    <th>说明</th>
+  </tr>
+  <tr>
+    <td>数据安全</td>
+    <td style="color:var(--warn)">⚠ 6/10</td>
+    <td>备份不含 IndexedDB；部分写操作为异步未等待</td>
+  </tr>
+  <tr>
+    <td>错误处理</td>
+    <td style="color:var(--warn)">⚠ 6/10</td>
+    <td>AI 调用无重试；部分 catch 块静默吞错</td>
+  </tr>
+  <tr>
+    <td>性能</td>
+    <td style="color:var(--warn)">⚠ 6/10</td>
+    <td>书架渲染每次全量遍历；无虚拟列表</td>
+  </tr>
+  <tr>
+    <td>可维护性</td>
+    <td style="color:var(--warn)">⚠ 5/10</td>
+    <td>app.js 1725 行过于臃肿；全局变量多；无模块系统</td>
+  </tr>
+  <tr>
+    <td>安全性</td>
+    <td style="color:var(--warn)">⚠ 5/10</td>
+    <td>API Key 明文混淆存储；无 CSP 头</td>
+  </tr>
+  <tr>
+    <td>用户体验</td>
+    <td style="color:var(--success)">✅ 8/10</td>
+    <td>引导流程完善；封面系统；多主题支持</td>
+  </tr>
+  <tr>
+    <td>离线能力</td>
+    <td style="color:var(--danger)">❌ 3/10</td>
+    <td>无离线包；无 Service Worker；所有页面依赖网络</td>
+  </tr>
+  <tr>
+    <td>Skill 对齐</td>
+    <td style="color:var(--warn)">⚠ 4/10</td>
+    <td>JS Bridge 已搭建但原生端未对接；缺少离线包和 WebView 池</td>
+  </tr>
+</table>
+
+<div style="text-align:center;color:var(--muted);font-size:13px;margin-top:40px;padding-top:20px;border-top:1px solid #eee">
+  灵墨 v1.0 · 架构分析报告 · 2026-06-28
+</div>
+
+</body>
+</html>

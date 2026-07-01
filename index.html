@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>灵墨 · AI创作伙伴</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===== 顶部导航栏 ===== -->
+  <header class="top-bar" id="topBar">
+    <button class="tb-btn tb-back" id="btnBack" onclick="goBack()" aria-label="返回">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+    </button>
+    <h1 class="tb-title" id="tbTitle">灵墨</h1>
+    <!-- 右侧占位，保持标题居中 -->
+    <span class="tb-spacer"></span>
+  </header>
+
+  <!-- ===== 主内容区 ===== -->
+  <main class="main-area" id="mainArea">
+
+    <!-- ===== 灵墨对话页 (首页) ===== -->
+    <section class="screen chat-screen active" id="chatScreen">
+      <div class="chat-messages" id="chatMessages">
+        <!-- 空状态：引导 -->
+        <div class="chat-empty" id="chatEmpty">
+          <div class="chat-empty-icon">
+            <svg width="56" height="56" viewBox="0 0 48 48"><path fill="currentColor" opacity="0.3" d="M31.833 13.112a5.36 5.36 0 0 0-2.544-1.805l-2.603-.845a1.028 1.028 0 0 1 0-1.937l2.602-.845a5.36 5.36 0 0 0 3.323-3.33l.022-.064l.845-2.6a1.027 1.027 0 0 1 1.94 0l.845 2.6A5.36 5.36 0 0 0 39.66 7.68l2.602.845l.052.013a1.028 1.028 0 0 1 0 1.937l-2.602.845a5.36 5.36 0 0 0-3.397 3.394l-.846 2.6l-.025.064a1.027 1.027 0 0 1-1.538.433a1.03 1.03 0 0 1-.375-.497l-.846-2.6a5.4 5.4 0 0 0-.852-1.602m14.776 6.872l-1.378-.448a2.84 2.84 0 0 1-1.797-1.796l-.448-1.377a.544.544 0 0 0-1.027 0l-.448 1.377a2.84 2.84 0 0 1-1.77 1.796l-1.378.448a.545.545 0 0 0 0 1.025l1.378.448q.227.075.438.188l.003.015a2.84 2.84 0 0 1 1.357 1.61l.448 1.377a.545.545 0 0 0 1.01.039v-.01l.016-.039l.448-1.377a2.84 2.84 0 0 1 1.798-1.796l1.378-.448a.545.545 0 0 0 0-1.025zM29.93 5q.042-.039.081-.081A20 20 0 0 0 24 4C12.954 4 4 12.954 4 24c0 3.448.873 6.695 2.411 9.528L4.07 41.766c-.375 1.318.843 2.537 2.162 2.162l8.236-2.342A19.9 19.9 0 0 0 24 44c10.16 0 18.551-7.577 19.831-17.388A2.55 2.55 0 0 1 41 26.54a2.54 2.54 0 0 1-.89-1.35l-.44-1.37a.9.9 0 0 0-.2-.33a1 1 0 0 0-.2-.15l-.12-.06l-1.42-.46a2.55 2.55 0 0 1-1.7-2.4c0-.346.075-.687.22-1a3 3 0 0 1-3.47 0a3 3 0 0 1-1.12-1.51l-.84-2.59a3.2 3.2 0 0 0-.54-1A3 3 0 0 0 30 14a3.3 3.3 0 0 0-1.35-.79L26 12.35a3 3 0 0 1-1.44-4.58a3.1 3.1 0 0 1 1.51-1.12l2.57-.83A3.4 3.4 0 0 0 29.93 5"/></svg>
+          </div>
+          <h2 class="chat-empty-title">今天想写点什么？</h2>
+          <p class="chat-empty-desc">和灵墨聊聊你的灵感，一起构思属于你的故事</p>
+          <div class="chat-quick-actions" id="chatQuickActions">
+            <button class="quick-chip" onclick="quickChat('帮我构思一个科幻故事')">🚀 帮我构思一个科幻故事</button>
+            <button class="quick-chip" onclick="quickChat('我想写一个悬疑短篇')">🔍 我想写一个悬疑短篇</button>
+            <button class="quick-chip" onclick="quickChat('给我一些创作灵感')">✨ 给我一些创作灵感</button>
+          </div>
+        </div>
+        <!-- 对话气泡动态插入此处 -->
+      </div>
+      <div class="chat-input-bar">
+        <div class="chat-input-wrap">
+          <textarea class="chat-input" id="chatInput" rows="1" placeholder="输入你的想法…" onkeydown="handleChatKey(event)"></textarea>
+          <button class="chat-send-btn" id="chatSendBtn" onclick="sendChat()" aria-label="发送">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 书架页 ===== -->
+    <section class="screen bookshelf-screen" id="bookshelfScreen">
+      <div class="shelf-header">
+        <h2>我的作品</h2>
+      </div>
+      <div class="shelf-grid" id="bookGrid">
+        <!-- 空状态 -->
+        <div class="shelf-empty" id="shelfEmpty">
+          <div class="shelf-empty-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          </div>
+          <h3>还没有作品</h3>
+          <p>去和灵墨聊聊，让AI帮你创作第一部作品</p>
+          <button class="btn btn-accent" onclick="switchTab('chat')">去聊聊 →</button>
+        </div>
+      </div>
+      <button class="fab-new" onclick="showCreateBookModal()">+</button>
+    </section>
+
+    <!-- ===== 我的页 ===== -->
+    <section class="screen settings-screen" id="settingsScreen">
+      <div class="settings-list">
+
+        <div class="settings-group">
+          <h3 class="settings-group-title">外观</h3>
+          <div class="settings-item" onclick="cycleTheme()">
+            <span class="si-label"><svg class="si-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg> 主题切换</span>
+            <span class="si-value" id="themeLabel">暖墨</span>
+            <svg class="si-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="settings-item" onclick="cycleFontSize()">
+            <span class="si-label"><svg class="si-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg> 字体大小</span>
+            <span class="si-value" id="fontSizeLabel">中</span>
+            <svg class="si-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3 class="settings-group-title">AI 模型</h3>
+          <div class="settings-item" onclick="showAddModelModal()">
+            <span class="si-label"><svg class="si-icon" width="18" height="18" viewBox="0 0 48 48"><path fill="currentColor" d="M13.833 6.112a5.36 5.36 0 0 0-2.545-1.805l-2.602-.845a1.028 1.028 0 0 1 0-1.937l2.602-.845a5.36 5.36 0 0 0 3.323-3.33l.846-2.6a1.027 1.027 0 0 1 1.938 0l.846 2.6A5.36 5.36 0 0 0 21.66.68l2.603.845l.052.013a1.028 1.028 0 0 1 0 1.937l-2.603.845a5.36 5.36 0 0 0-3.396 3.394l-.846 2.6l-.025.064a1.027 1.027 0 0 1-1.938 0l-.846-2.6a5.4 5.4 0 0 0-.852-1.602M40.833 30.112a5.36 5.36 0 0 0-2.545-1.805l-2.602-.845a1.028 1.028 0 0 1 0-1.937l2.602-.845a5.36 5.36 0 0 0 3.323-3.33l.846-2.6a1.027 1.027 0 0 1 1.938 0l.846 2.6A5.36 5.36 0 0 0 48.66 24.68l2.603.845l.052.013a1.028 1.028 0 0 1 0 1.937l-2.603.845a5.36 5.36 0 0 0-3.396 3.394l-.846 2.6l-.025.064a1.027 1.027 0 0 1-1.938 0l-.846-2.6a5.4 5.4 0 0 0-.852-1.602"/></svg> 模型管理</span>
+            <span class="si-value" id="modelCountLabel">未配置</span>
+            <svg class="si-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3 class="settings-group-title">数据</h3>
+          <div class="settings-item" onclick="exportData()">
+            <span class="si-label"><svg class="si-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> 导出备份</span>
+            <span class="si-value">分享/保存</span>
+            <svg class="si-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="settings-item" onclick="importData()">
+            <span class="si-label"><svg class="si-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 导入恢复</span>
+            <span class="si-value">从备份文件</span>
+            <svg class="si-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="settings-item" onclick="clearAllData()">
+            <span class="si-label"><svg class="si-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> 清空数据</span>
+            <span class="si-value" style="color:var(--danger)">不可恢复</span>
+            <svg class="si-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3 class="settings-group-title">其他</h3>
+          <div class="settings-item">
+            <span class="si-label"><svg class="si-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> 关于灵墨</span>
+            <span class="si-value">v1.0.0</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 引导式创作页 ===== -->
+    <section class="screen guide-screen" id="guidePage">
+      <div class="guide-container">
+        <div class="guide-content" id="guideContent"></div>
+        <div class="guide-actions" id="guideActions"></div>
+      </div>
+    </section>
+
+    <!-- ===== 作品详情页 (从书架滑入) ===== -->
+    <section class="screen detail-screen" id="detailScreen">
+      <div class="detail-cover" id="detailCover" style="min-height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden">
+        <h2 class="detail-cover-title" id="detailBookName" style="z-index:1;position:relative">书名</h2>
+        <p class="detail-cover-meta" id="detailBookMeta" style="z-index:1;position:relative">类型 · 章节 · 字数</p>
+      </div>
+      <div class="detail-actions">
+        <button class="btn btn-outline btn-sm" onclick="showCreateBookModal(currentBookId)">✏️ 编辑信息</button>
+        <button class="btn btn-outline btn-sm" onclick="openPlanManager()">📝 创作规划</button>
+        <button class="btn btn-outline btn-sm" onclick="showExportBookModal()">📤 导出</button>
+      </div>
+      <div class="detail-chapters">
+        <h3 class="detail-section-title">章节 · <span id="detailChapterCount">0</span>章</h3>
+        <div class="chapter-list" id="chapterList"></div>
+        <button class="btn btn-accent btn-full" onclick="showCreateChapterModal()" style="margin-top:12px">+ 新建章节</button>
+      </div>
+    </section>
+
+    <!-- ===== 全屏阅读器 ===== -->
+    <section class="screen reader-screen" id="readerScreen">
+      <div class="reader-content" id="readerContent">
+        <h2 class="reader-chapter-title" id="readerTitle"></h2>
+        <div class="reader-body" id="readerBody"></div>
+        <div class="reader-chapter-end" id="readerChapterEnd">
+          <div class="chapter-end-divider">✦</div>
+          <div id="readerEndContent"></div>
+        </div>
+      </div>
+      <div class="reader-fab" id="readerFab">
+        <button class="fab-btn" onclick="toggleReaderMenu()" aria-label="菜单">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
+      <!-- 阅读器菜单 -->
+      <div class="reader-menu" id="readerMenu">
+        <div class="reader-menu-backdrop" onclick="toggleReaderMenu()"></div>
+        <div class="reader-menu-panel">
+          <h4>章节目录</h4>
+          <div class="reader-menu-list" id="readerChapterMenu"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== 底部导航 ===== -->
+  <nav class="bottom-bar" id="bottomBar">
+    <button class="bb-item active" data-tab="chat" onclick="switchTab('chat')">
+      <svg width="24" height="24" viewBox="0 0 48 48"><path fill="currentColor" d="M31.833 13.112a5.36 5.36 0 0 0-2.544-1.805l-2.603-.845a1.028 1.028 0 0 1 0-1.937l2.602-.845a5.36 5.36 0 0 0 3.323-3.33l.022-.064l.845-2.6a1.027 1.027 0 0 1 1.94 0l.845 2.6A5.36 5.36 0 0 0 39.66 7.68l2.602.845l.052.013a1.028 1.028 0 0 1 0 1.937l-2.602.845a5.36 5.36 0 0 0-3.397 3.394l-.846 2.6l-.025.064a1.027 1.027 0 0 1-1.538.433a1.03 1.03 0 0 1-.375-.497l-.846-2.6a5.4 5.4 0 0 0-.852-1.602m14.776 6.872l-1.378-.448a2.84 2.84 0 0 1-1.797-1.796l-.448-1.377a.544.544 0 0 0-1.027 0l-.448 1.377a2.84 2.84 0 0 1-1.77 1.796l-1.378.448a.545.545 0 0 0 0 1.025l1.378.448q.227.075.438.188l.003.015a2.84 2.84 0 0 1 1.357 1.61l.448 1.377a.545.545 0 0 0 1.01.039v-.01l.016-.039l.448-1.377a2.84 2.84 0 0 1 1.798-1.796l1.378-.448a.545.545 0 0 0 0-1.025zM29.93 5q.042-.039.081-.081A20 20 0 0 0 24 4C12.954 4 4 12.954 4 24c0 3.448.873 6.695 2.411 9.528L4.07 41.766c-.375 1.318.843 2.537 2.162 2.162l8.236-2.342A19.9 19.9 0 0 0 24 44c10.16 0 18.551-7.577 19.831-17.388A2.55 2.55 0 0 1 41 26.54a2.54 2.54 0 0 1-.89-1.35l-.44-1.37a.9.9 0 0 0-.2-.33a1 1 0 0 0-.2-.15l-.12-.06l-1.42-.46a2.55 2.55 0 0 1-1.7-2.4c0-.346.075-.687.22-1a3 3 0 0 1-3.47 0a3 3 0 0 1-1.12-1.51l-.84-2.59a3.2 3.2 0 0 0-.54-1A3 3 0 0 0 30 14a3.3 3.3 0 0 0-1.35-.79L26 12.35a3 3 0 0 1-1.44-4.58a3.1 3.1 0 0 1 1.51-1.12l2.57-.83A3.4 3.4 0 0 0 29.93 5"/></svg>
+      <span>灵墨</span>
+    </button>
+    <button class="bb-item" data-tab="bookshelf" onclick="switchTab('bookshelf')">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <span>书架</span>
+    </button>
+    <button class="bb-item" data-tab="settings" onclick="switchTab('settings')">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>我的</span>
+    </button>
+  </nav>
+
+  <!-- ===== 底部 Sheet 模态框 ===== -->
+
+  <!-- 新建/编辑书籍 -->
+  <div class="sheet-overlay" id="bookMetaSheet">
+    <div class="sheet-backdrop" onclick="closeSheet('bookMetaSheet')"></div>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <h3 class="sheet-title" id="bookMetaTitle">新建作品</h3>
+      <div class="sheet-body">
+        <div class="form-group">
+          <label>作品名称</label>
+          <input type="text" id="inputBookName" placeholder="给你的作品起个名字" maxlength="50">
+        </div>
+        <div class="form-group">
+          <label>类型</label>
+          <select id="inputBookGenre">
+            <option value="">选择类型</option>
+            <option value="科幻">科幻</option>
+            <option value="奇幻">奇幻</option>
+            <option value="悬疑">悬疑</option>
+            <option value="言情">言情</option>
+            <option value="武侠">武侠</option>
+            <option value="历史">历史</option>
+            <option value="都市">都市</option>
+            <option value="恐怖">恐怖</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>简介</label>
+          <textarea id="inputBookDesc" rows="3" placeholder="简单介绍一下这个故事…" maxlength="200"></textarea>
+        </div>
+        <div class="form-group">
+          <label>封面</label>
+          <div class="cover-preview-box" id="coverPreviewBox">
+            <div class="cover-preview-placeholder">选择类型后自动生成封面</div>
+          </div>
+          <button class="btn btn-outline btn-sm btn-full" onclick="aiGenerateCover()" style="margin-top:8px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+            ✨ AI 生成封面
+          </button>
+        </div>
+      </div>
+      <div class="sheet-footer">
+        <button class="btn btn-outline btn-full" onclick="closeSheet('bookMetaSheet')">取消</button>
+        <button class="btn btn-accent btn-full" id="btnSaveBookMeta" onclick="saveBookMeta()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 生成章节 -->
+  <div class="sheet-overlay" id="chapterSheet">
+    <div class="sheet-backdrop" onclick="closeSheet('chapterSheet')"></div>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <h3 class="sheet-title">生成章节</h3>
+      <div class="sheet-body">
+        <div class="form-group">
+          <label>生成数量</label>
+          <select id="inputChapterCount">
+            <option value="1">1 章</option>
+            <option value="2">2 章</option>
+            <option value="3">3 章</option>
+            <option value="5">5 章</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>章节标题 <span style="font-weight:400;color:var(--text-muted)">（可选，留空由 AI 自动生成）</span></label>
+          <input type="text" id="inputChapterTitle" placeholder="留空则AI根据内容自动生成" maxlength="20">
+        </div>
+        <div class="form-group">
+          <label>额外提示 <span style="font-weight:400;color:var(--text-muted)">（可选）</span></label>
+          <textarea id="inputChapterPrompt" rows="2" placeholder="给AI一些方向，如：主角发现了一个惊天秘密…" maxlength="300"></textarea>
+        </div>
+      </div>
+      <div class="sheet-footer">
+        <button class="btn btn-outline btn-full" onclick="closeSheet('chapterSheet')">取消</button>
+        <button class="btn btn-accent btn-full" id="btnGenerateChapter" onclick="generateChapters()">✨ 生成章节</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 导出作品 -->
+  <div class="sheet-overlay" id="exportBookSheet">
+    <div class="sheet-backdrop" onclick="closeSheet('exportBookSheet')"></div>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <h3 class="sheet-title">导出作品</h3>
+      <div class="sheet-body">
+        <div class="form-group">
+          <label>选择作品</label>
+          <select id="exportBookSelect"></select>
+        </div>
+        <div class="form-group">
+          <label>导出格式</label>
+          <div class="radio-group">
+            <label class="radio-item"><input type="radio" name="exportFormat" value="txt" checked> TXT 纯文本</label>
+            <label class="radio-item"><input type="radio" name="exportFormat" value="html"> HTML 网页</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="checkbox-item"><input type="checkbox" id="exportIncludePlans" checked> 包含创作规划（设定/大纲）</label>
+        </div>
+        <div class="form-group">
+          <label>保存位置</label>
+          <div class="export-method-hint">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span>文件将保存到 Documents/灵墨/ 或下载目录，可在文件管理器中找到</span>
+          </div>
+        </div>
+      </div>
+      <div class="sheet-footer">
+        <button class="btn btn-outline btn-full" onclick="closeSheet('exportBookSheet')">取消</button>
+        <button class="btn btn-accent btn-full" onclick="doExportBook()">导出保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 创作规划 -->
+  <div class="sheet-overlay" id="planSheet">
+    <div class="sheet-backdrop" onclick="closeSheet('planSheet')"></div>
+    <div class="sheet-panel" style="max-height:90vh">
+      <div class="sheet-handle"></div>
+      <h3 class="sheet-title">创作规划</h3>
+      <div class="plan-tabs" id="planTabs">
+        <button class="plan-tab active" onclick="PlanManager.switchTab('setting')">世界观设定</button>
+        <button class="plan-tab" onclick="PlanManager.switchTab('outline')">故事大纲·蓝图</button>
+      </div>
+      <div class="sheet-body" id="planContent"></div>
+    </div>
+  </div>
+
+  <!-- AI 模型管理 -->
+  <div class="sheet-overlay" id="modelSheet">
+    <div class="sheet-backdrop" onclick="closeSheet('modelSheet')"></div>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <h3 class="sheet-title">AI 模型管理</h3>
+      <div class="sheet-body">
+        <div class="model-list" id="modelList"></div>
+        <button class="btn btn-outline btn-full" onclick="showAddModelForm()" style="margin-top:12px">+ 添加模型</button>
+        <div class="model-add-form" id="modelAddForm" style="display:none">
+          <div class="form-group">
+            <label>模型厂商</label>
+            <select id="inputModelProvider" onchange="onProviderChange()">
+              <option value="">选择厂商…</option>
+              <option value="deepseek">DeepSeek</option>
+              <option value="openai">OpenAI</option>
+              <option value="zhipu">智谱 (GLM)</option>
+              <option value="moonshot">月之暗面 (Kimi)</option>
+              <option value="qwen">通义千问 (Qwen)</option>
+              <option value="custom">自定义</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>模型名称</label>
+            <input type="text" id="inputModelName" placeholder="给这个配置起个名字">
+          </div>
+          <div class="form-group">
+            <label>API Key</label>
+            <input type="password" id="inputModelKey" placeholder="sk-...">
+          </div>
+          <div class="form-group" id="groupModelUrl" style="display:none">
+            <label>API 地址</label>
+            <input type="text" id="inputModelUrl" placeholder="https://api.example.com/v1/chat/completions">
+          </div>
+          <div class="form-group">
+            <label>模型 ID</label>
+            <select id="inputModelIdSelect" onchange="onModelIdChange()">
+              <option value="">先选择厂商…</option>
+            </select>
+            <input type="text" id="inputModelIdCustom" placeholder="或手动输入 model ID" style="display:none;margin-top:8px">
+          </div>
+          <button class="btn btn-accent btn-full" onclick="addModel()">添加并测试连接</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 确认删除 -->
+  <div class="sheet-overlay" id="confirmSheet">
+    <div class="sheet-backdrop" onclick="closeSheet('confirmSheet')"></div>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <h3 class="sheet-title">确认删除</h3>
+      <div class="sheet-body">
+        <p id="confirmMessage" style="text-align:center;color:var(--text-secondary)"></p>
+      </div>
+      <div class="sheet-footer">
+        <button class="btn btn-outline btn-full" onclick="closeSheet('confirmSheet')">取消</button>
+        <button class="btn btn-danger btn-full" id="btnConfirmDelete">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+</div>
+
+<script src="capacitor-core.js"></script>
+<script src="capacitor-filesystem.js"></script>
+<script src="android-bridge.js"></script>
+<script src="storage.js"></script>
+<script src="data-backup.js"></script>
+<script src="ai-service.js"></script>
+<script src="cover-engine.js"></script>
+<script src="workflow.js"></script>
+<script src="plan-manager.js"></script>
+<script src="guide.js"></script>
+<script src="brainstorm.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
