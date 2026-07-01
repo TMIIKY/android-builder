@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>灵墨（Lingmo）架构分析报告</title>
+<style>
+  :root {
+    --bg: #fafaf9;
+    --card: #fff;
+    --text: #292524;
+    --muted: #78716c;
+    --accent: #6366f1;
+    --p0: #dc2626;
+    --p1: #d97706;
+    --p2: #0891b2;
+    --border: #e7e5e4;
+    --tag-bg: #f5f5f4;
+    --code-bg: #fafaf9;
+  }
+  body {
+    font-family: "PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.75;
+  }
+  h1 { font-size: 28px; margin: 0 0 8px; letter-spacing: 1px; }
+  h2 { font-size: 20px; margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--accent); }
+  h3 { font-size: 16px; margin: 24px 0 12px; color: var(--accent); }
+  .meta { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 16px 0;
+  }
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .tag-p0 { background: #fef2f2; color: var(--p0); }
+  .tag-p1 { background: #fffbeb; color: var(--p1); }
+  .tag-p2 { background: #ecfeff; color: var(--p2); }
+  .tag-info { background: #eef2ff; color: var(--accent); }
+  .defect-item {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .defect-item:last-child { border-bottom: none; }
+  .defect-title { font-weight: 600; margin-bottom: 4px; }
+  .defect-detail { font-size: 14px; color: var(--muted); margin-bottom: 6px; }
+  .defect-code {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: "SF Mono","Fira Code","Consolas",monospace;
+    font-size: 13px;
+    white-space: pre-wrap;
+    overflow-x: auto;
+    margin: 6px 0;
+  }
+  .defect-fix { font-size: 13px; color: #16a34a; margin-top: 4px; }
+  .risk-table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 12px 0; }
+  .risk-table th, .risk-table td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .risk-table th { background: var(--tag-bg); font-weight: 600; font-size: 13px; }
+  .arch-diagram {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .summary-box {
+    background: linear-gradient(135deg, #eef2ff, #faf5ff);
+    border: 1px solid #c7d2fe;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 20px 0;
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .stat-box {
+    text-align: center;
+    padding: 14px 8px;
+    border-radius: 8px;
+  }
+  .stat-box.p0 { background: #fef2f2; }
+  .stat-box.p1 { background: #fffbeb; }
+  .stat-box.p2 { background: #ecfeff; }
+  .stat-num { font-size: 32px; font-weight: 700; }
+  .stat-label { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  ul { padding-left: 20px; }
+  li { margin: 6px 0; font-size: 14px; }
+  .toc a { color: var(--accent); text-decoration: none; font-size: 14px; }
+  .toc a:hover { text-decoration: underline; }
+  .toc li { margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<h1>灵墨（Lingmo）架构分析报告</h1>
+<div class="meta">分析日期：2026-06-28 | 分析范围：全量代码（11个核心文件） | 总代码量：~8000行</div>
+
+<!-- ============ 统计 ============ -->
+<div class="stats-grid">
+  <div class="stat-box p0"><div class="stat-num" style="color:var(--p0)">4</div><div class="stat-label">P0 严重缺陷</div></div>
+  <div class="stat-box p1"><div class="stat-num" style="color:var(--p1)">5</div><div class="stat-label">P1 重要缺陷</div></div>
+  <div class="stat-box p2"><div class="stat-num" style="color:var(--p2)">5</div><div class="stat-label">P2 优化建议</div></div>
+  <div class="stat-box"><div class="stat-num" style="color:var(--accent)">18</div><div class="stat-label">运行时风险场景</div></div>
+</div>
+
+<!-- ============ 目录 ============ -->
+<div class="card">
+  <h3 style="margin-top:0">目录</h3>
+  <ol class="toc">
+    <li><a href="#arch">一、系统架构概览</a></li>
+    <li><a href="#p0">二、P0 严重缺陷（4个）</a></li>
+    <li><a href="#p1">三、P1 重要缺陷（5个）</a></li>
+    <li><a href="#p2">四、P2 优化建议（5个）</a></li>
+    <li><a href="#risks">五、运行时风险分析</a></li>
+    <li><a href="#skills">六、Skill 对齐差距分析</a></li>
+    <li><a href="#summary">七、综合评估</a></li>
+  </ol>
+</div>
+
+<!-- ============ 一、架构概览 ============ -->
+<h2 id="arch">一、系统架构概览</h2>
+
+<p>灵墨采用典型的<strong>前端单页应用（SPA）+ WebView 混合架构</strong>，整体分为四个层次：</p>
+
+<div class="arch-diagram">
+┌──────────────────────────────────────────────────────────┐
+│                     UI 展示层 (View)                        │
+│  index.html (6屏) + styles.css (3主题)                     │
+│  灵墨对话 | 书架 | 我的 | 详情 | 阅读器 | 引导页            │
+│  7个 Sheet 弹窗 + Toast + 底部导航                          │
+├──────────────────────────────────────────────────────────┤
+│                   业务逻辑层 (Controller)                    │
+│  ┌───────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │
+│  │ app.js     │ │guide.js  │ │brainstorm│ │plan-mgr  │  │
+│  │ 页面调度    │ │引导助手  │ │  .js     │ │  .js     │  │
+│  │ 返回栈管理  │ │4种模式   │ │AI对话    │ │3Tab规划  │  │
+│  └───────────┘ └──────────┘ └──────────┘ └──────────┘  │
+│  ┌───────────┐ ┌──────────┐ ┌──────────┐               │
+│  │ai-service │ │workflow  │ │cover-eng │               │
+│  │  .js      │ │  .js     │ │  ine.js  │               │
+│  │6个工作流  │ │自动写-审  │ │9种预设   │               │
+│  └───────────┘ └──────────┘ └──────────┘               │
+├──────────────────────────────────────────────────────────┤
+│                    数据存储层 (Model)                       │
+│  ┌──────────────────────────┐ ┌─────────────────────┐   │
+│  │ localStorage              │ │ IndexedDB            │   │
+│  │ (元数据/记忆/设置/规划)    │ │ (ChapterDB - 章节正文) │   │
+│  │ _safeSetItem + 应急清理    │ │ 30s事务超时保护       │   │
+│  └──────────────────────────┘ └─────────────────────┘   │
+│  ┌──────────────────────────┐                            │
+│  │ data-backup.js            │                            │
+│  │ 多路径导出/导入/回滚保护   │                            │
+│  └──────────────────────────┘                            │
+├──────────────────────────────────────────────────────────┤
+│                  原生桥接层 (Bridge)                        │
+│  ┌──────────────────────┐ ┌─────────────────────┐      │
+│  │ NativeShare           │ │ AndroidBackStack     │      │
+│  │ (分享/保存/选择文件)   │ │ (返回栈管理)         │      │
+│  └──────────────────────┘ └─────────────────────┘      │
+│  ┌──────────────────────┐                                │
+│  │ Capacitor Filesystem  │                                │
+│  │ (文件读写)             │                                │
+│  └──────────────────────┘                                │
+└──────────────────────────────────────────────────────────┘
+</div>
+
+<h3>关键架构决策</h3>
+<ul>
+  <li><strong>混合存储</strong>：localStorage 存元数据（书籍/记忆/设置/规划），IndexedDB 存章节正文大文本。这种分离是合理的——localStorage 同步读写快适合元数据，IndexedDB 异步适合大文本——但增加了数据一致性风险（见缺陷#1、#2）。</li>
+  <li><strong>Spec 驱动生成</strong>：每章先生成 YAML Spec（before_state/after_state/must_happen），再基于 Spec 写正文。这是与"开放小说创作助手" Skill 最核心的对齐点。</li>
+  <li><strong>持久记忆系统</strong>：per-book 的人物状态历史、伏笔回收追踪、因果链压缩、世界状态——这是长篇创作质量的关键保障。</li>
+  <li><strong>多路径桥接</strong>：NativeShare → Capacitor Share → plus.io → 浏览器下载，四级降级确保各环境可用。</li>
+  <li><strong>Sheet Overlay + 原生返回栈</strong>：每个 Sheet 打开/关闭同步通知原生层栈深度，确保 Android 返回键行为正确。</li>
+</ul>
+
+<h3>模块依赖关系</h3>
+<div class="arch-diagram">
+index.html 加载顺序:
+  capacitor-core → capacitor-filesystem → android-bridge
+  → storage → data-backup → ai-service → cover-engine
+  → workflow → plan-manager → guide → brainstorm → app
+</div>
+
+<!-- ============ 二、P0 缺陷 ============ -->
+<h2 id="p0">二、P0 严重缺陷（4个）</h2>
+
+<div class="card">
+  <div class="defect-item">
+    <div class="defect-title"><span class="tag tag-p0">P0</span> #1：章节修改后 IndexedDB 未同步，数据丢失风险</div>
+    <div class="defect-detail">文件：<code>app.js</code>，函数 <code>_doReviseChapter</code>（第1125-1171行）和 <code>_doRegenerateChapter</code>（第1173-1299行）</div>
+    <p style="font-size:14px;margin:8px 0"><strong>根因</strong>：两个函数都调用了 <code>Storage.saveChapters(currentBookId, chapters)</code>，该函数内部会将 <code>content</code> 从元数据中剥离后异步写入 IndexedDB。但这两个函数紧接着调用 <code>openReader()</code> 刷新阅读器，<strong>未等待 IndexedDB 写入完成</strong>。如果此时 App 崩溃或页面被关闭，修改后的章节正文会丢失。</p>
+    <div class="defect-code">// _doReviseChapter 第1160行
+target.content = aiResult.trim();
+Storage.saveChapters(currentBookId, chapters);
+// ⚠️ saveChapters 内部异步写 IndexedDB，这里未 await
+openReader(currentChapterIndex);  // 立即刷新阅读器</div>
+    <div class="defect-fix">✅ 建议：改用 <code>Storage._indexedDBPutChapter()</code> 先同步写入 IndexedDB 再刷新；或让 <code>saveChapters</code> 返回 Promise 并 await。</div>
+  </div>
+
+  <div class="defect-item">
+    <div class="defect-title"><span class="tag tag-p0">P0</span> #2：<code>_handleBackAction</code> 无条件触发 Guide 模块，可能导致运行时错误</div>
+    <div class="defect-detail">文件：<code>app.js</code>，第89-94行</div>
+    <p style="font-size:14px;margin:8px 0"><strong>根因</strong>：只检查了 <code>Guide.state.mode</code> 是否为真值，但<strong>未检查 Guide 页面（guidePage）是否正在展示</strong>。在用户处于书架/设置页面按返回键时，如果之前使用过 Guide 模块（state.mode 仍为非空），会错误地触发 <code>Guide._goBack()</code>，可能导致页面跳转异常。</p>
+    <div class="defect-code">// 第89-94行
+if (typeof Guide !== 'undefined' && Guide._goBack && Guide.state && Guide.state.mode) {
+    Guide._goBack();
+    _popNativeStack();
+    return;
+}</div>
+    <div class="defect-fix">✅ 建议：增加 <code>guidePage</code> 的 active 状态检查：
+<code>document.getElementById('guidePage')?.classList.contains('active')</code></div>
+  </div>
+
+  <div class="defect-item">
+    <div class="defect-title"><span class="tag tag-p0">P0</span> #3：<code>clearAllData()</code> 使用 <code>localStorage.clear()</code> 清除非灵墨数据</div>
+    <div class="defect-detail">文件：<code>app.js</code>，第1689行</div>
+    <p style="font-size:14px;margin:8px 0"><strong>根因</strong>：<code>localStorage.clear()</code> 会清除<strong>所有</strong> localStorage 键值对，包括其他库/插件的数据、浏览器缓存等。在 WebView 混合应用中，可能误删 Capacitor 插件状态或其他 SDK 数据。</p>
+    <div class="defect-code">// 第1689行
+localStorage.clear();  // ⚠️ 清除所有键，非仅灵墨数据</div>
+    <div class="defect-fix">✅ 建议：使用 <code>DataBackup.collectAllData()</code> 的逻辑精确匹配 key 前缀（books/chapters_/memory_/plans_/specs_/reviews_/ai_models/active_model_id/bs_），逐项 remove。</div>
+  </div>
+
+  <div class="defect-item">
+    <div class="defect-title"><span class="tag tag-p0">P0</span> #4：数据导入时 IndexedDB 数据未纳入回滚快照</div>
+    <div class="defect-detail">文件：<code>data-backup.js</code>，<code>_doImport()</code>（第558-629行）</div>
+    <p style="font-size:14px;margin:8px 0"><strong>根因</strong>：导入备份时只快照了 localStorage 的当前值用于回滚，但<strong>未处理 IndexedDB 中的章节正文数据</strong>。如果导入中途失败，localStorage 回滚了但 IndexedDB 可能已被部分覆盖，导致数据不一致。</p>
+    <div class="defect-code">// _doImport 第565-578行
+const tempSnapshot = {};
+keys.forEach(key => {
+    const existing = localStorage.getItem(key);
+    if (existing !== null) tempSnapshot[key] = existing;
+});
+// ⚠️ 未备份 IndexedDB 中的章节正文</div>
+    <div class="defect-fix">✅ 建议：导入前先收集所有 bookId，备份对应的 IndexedDB 章节数据到临时 ObjectStore；导入失败时恢复 IndexedDB 数据。</div>
+  </div>
+</div>
+
+<!-- ============ 三、P1 缺陷 ============ -->
+<h2 id="p1">三、P1 重要缺陷（5个）</h2>
+
+<div class="card">
+  <div class="defect-item">
+    <div class="defect-title"><span class="tag tag-p1">P1</span> #5：章节 ID 碰撞风险</div>
+    <div class="defect-detail">文件：<code>app.js</code>，第711行</div>
+    <p style="font-size:14px;margin:8px 0"><strong>根因</strong>：章节 ID 生成使用 <code>Math.random().toString(36).substring(2, 6)</code> 仅产生 4 位随机字符（~1.6M 种可能），配合时间戳在同一毫秒内批量创建多章时碰撞概率不可忽略。</p>
+    <div class="defect-code">// 第711行
+const randomSuffix = Math.random().toString(36).substring(2, 6);
+const shellId = 'ch_' + baseTimestamp + '_' + randomSuffix + '_' + i;</div>
+    <div class="defect-fix">✅ 建议：使用 <code>crypto.randomUUID()</code> 或增加随机长度到 8 位以上。</div>
+  </div>
+
+  <div class="defect-item">
+    <div class="defect-title"><span class="tag tag-p1">P1</span> #6：封面渲染非确定性导致视觉闪烁</div>
+    <div class="defect-detail">文件：<code>cover-engine.js</code>，<code>_starsHTML()</code>（第173-183行）</div>
+    <p style="font-size:14px;margin:8px 0"><strong>根因</strong>：<code>_starsHTML()</code> 使用 <code>Math.random()</code> 生成星星位置，每次调用产生不同的位置。当详情页通过 <code>showBookDetail()</code> 重建 DOM 时（先清空再 innerHTML），封面重新渲染导致星星位置跳动。</p>
+    <div class="defect-code">// 第175-178行
+for (let i = 0; i < 10; i++) {
+    const top = Math.random() * 90;   // ⚠️ 每次不同
+    const left = Math.random() * 90;  // ⚠️ 每次不同</div>
+    <div class="defect-fix">✅ 建议：基于书名/ID 的 hash 生成确定性的随机种子（如简单的 hash 函数）。</div>
+  </div>
+
+  <div class="defect-item">
+    <div class="defect-title"><span class="tag tag-p1">P1</span> #7：<code>buildContextMemory</code> 大纲截断策略过于激进</div>
+    <div class="defect-detail">文件：<code>plan-manager.js</code>，<code>_buildBatchDetailPrompts()</code>（第1131行）</div>
+    <p style="font-size:14px;margin:8px 0"><strong>根因</strong>：大纲截断长度根据总章数计算——50章以下仅截 800 字符，200章以上截 4000 字符。对于复杂大纲（如 50 章但设定极丰富），800 字符可能远远不够，AI 无法获取足够的大纲上下文。</p>
+    <div class="defect-code">// 第1131行
+const outlineCutLen = totalChapters <= 50 ? 800 : 
+    (totalChapters <= 200 ? 2000 : 4000);</div>
+    <div class="defect-fix">✅ 建议：改为按实际文本长度的百分比截断（如 50%），同时设上下限（800-4000）。</div>
+  </div>
+
+  <div class="defect-item">
+    <div class="defect-title"><span class="tag tag-p1">P1</span> #8：<code>_continueChapterPlan</code> 无限循环风险</div>
+    <div class="defect-detail">文件：<code>plan-manager.js</code>，第1473-1478行</div>
+    <p style="font-size:14px;margin:8px 0"><strong>根因</strong>：当 <code>totalChapters === 0</code>（大纲和蓝图中都未解析出总章数）时，chapter_count 被设为 <code>lastPlanned + batchSize</code>，这是一个递增的值。每次调用"继续规划"都会生成新的 batchSize，如果 AI 返回失败但未更新 lastPlanned，可能形成无效循环。</p>
+    <div class="defect-code">// 第1474行
+chapter_count: totalChapters > 0 ? String(totalChapters) : 
+    String(lastPlanned + this.state.chapterPlanBatchSize),
+// ⚠️ totalChapters=0 时 chapter_count 每次递增，无终止条件</div>
+    <div class="defect-fix">✅ 建议：当 totalChapters 无法解析时，弹窗让用户手动输入目标章数，而不是自动递增。</div>
+  </div>
+
+  <div class="defect-item">
+    <div class="defect-title"><span class="tag tag-p1">P1</span> #9：章节规划数据导入后 IndexedDB 不一致</div>
+    <div class="defect-detail">文件：<code>data-backup.js</code>，<code>collectAllData()</code>（第299-326行）</div>
+    <p style="font-size:14px;margin:8px 0"><strong>根因</strong>：<code>collectAllData()</code> 只收集 localStorage 中的数据（通过 key 前缀匹配），但章节正文实际存储在 IndexedDB 中。导出时 metadata 中 chapter.content 已被 <code>saveChapters()</code> 剥离。导入后 chapters 元数据恢复，但正文仍在旧的 IndexedDB 中或丢失。</p>
+    <div class="defect-code">// collectAllData 只匹配 localStorage keys
+key.startsWith('chapters_') ||  // 只有元数据，不含正文</div>
+    <div class="defect-fix">✅ 建议：导出时显式将 IndexedDB 章节正文嵌入备份 JSON；导入时同步写入 IndexedDB。</div>
+  </div>
+</div>
+
+<!-- ============ 四、P2 缺陷 ============ -->
+<h2 id="p2">四、P2 优化建议（5个）</h2>
+
+<div class="card">
+  <div class="defect-item">
+    <div class="defect-title"><span class="tag tag-p2">P2</span> #10：书架进度计算 O(n) 复杂度</div>
+    <div class="defect-detail">文件：<code>app.js</code>，<code>renderBookshelf()</code>（第235-264行）</div>
+    <p style="font-size:14px;margin:8px 0">每本书渲染时都调用 <code>Storage.getChapters()</code> 和 <code>Storage.getPlans()</code> 来计算进度。当书架有大量书籍时，每次渲染都可能触发多次 IndexedDB 读取。</p>
+    <div class="defect-fix">✅ 建议：在 <code>Storage.saveChapters</code> 时同步更新书的进度字段，渲染时直接读取。</div>
+  </div>
+
+  <div class="defect-item">
+    <div class="defect-title"><span class="tag tag-p2">P2</span> #11：详情页不必要的 DOM 重建</div>
+    <div class="defect-detail">文件：<code>app.js</code>，<code>showBookDetail()</code>（第314-317行）</div>
+    <p style="font-size:14px;margin:8px 0">每次进入详情页都执行 <code>detailScreen.innerHTML = ''</code> 清空再重建。对于频繁切换书籍的用户，这会产生不必要的重绘和性能损耗。</p>
+    <div class="defect-fix">✅ 建议：仅在 <code>bookId</code> 变更时重建 DOM，同书不同章节的刷新仅更新 chapterList 部分。</div>
+  </div>
+
+  <div class="defect-item">
+    <div class="defect-title"><span class="tag tag-p2">P2</span> #12：批量章节生成缺少速率限制</div>
+    <div class="defect-detail">文件：<code>app.js</code>，<code>generateChapters()</code>（第736-919行）</div>
+    <p style="font-size:14px;margin:8px 0">循环中逐个调用 AI API 生成章节，无任何延迟。如果用户一次性请求 10 章，会在短时间内连续发送 10 个请求，可能触发 API 提供商的速率限制（429）。</p>
+    <div class="defect-fix">✅ 建议：在每章生成之间增加 1-2 秒延迟（尤其对于免费 API）。</div>
+  </div>
+
+  <div class="defect-item">
+    <div class="defect-title"><span class="tag tag-p2">P2</span> #13：阅读器未使用虚拟滚动</div>
+    <div class="defect-detail">文件：<code>app.js</code>，<code>renderReaderContent()</code>（第593-618行）</div>
+    <p style="font-size:14px;margin:8px 0">章节内容直接通过 <code>innerHTML</code> 渲染全部段落（<code>content.split('\n')</code>），当章节特别长（如 8000+ 字）时，DOM 节点数可能达到数百个，在低端手机上可能出现滚动卡顿。</p>
+    <div class="defect-fix">✅ 建议：使用 CSS <code>content-visibility: auto</code> 或分页渲染。</div>
+  </div>
+
+  <div class="defect-item">
+    <div class="defect-title"><span class="tag tag-p2">P2</span> #14：<code>_generateTitle</code> 正则表达式局限性</div>
+    <div class="defect-detail">文件：<code>app.js</code>，<code>_generateTitle()</code>（第1077-1089行）</div>
+    <p style="font-size:14px;margin:8px 0">标题提取依赖 <code>"第X章 标题"</code> 格式匹配，如果 AI 未在正文第一行写出此格式，则降级到取前100字符中的引号内容或清理标点后的前4个字符。后者经常产生无意义的标题如"夜色如墨"。虽然已有 <code>_doRegenerateChapter</code> 中的 AI 标题生成作为补充，但 <code>generateChapters</code> 中未使用。</p>
+    <div class="defect-fix">✅ 建议：统一使用 AI 生成标题（像 <code>_doRegenerateChapter</code> 中那样），仅以正则匹配作为降级。</div>
+  </div>
+</div>
+
+<!-- ============ 五、运行时风险 ============ -->
+<h2 id="risks">五、运行时风险分析</h2>
+
+<h3>5.1 数据持久化风险（4个场景）</h3>
+<table class="risk-table">
+<tr><th style="width:22%">风险场景</th><th style="width:22%">触发条件</th><th style="width:28%">影响</th><th>缓解建议</th></tr>
+<tr>
+  <td><strong>localStorage 配额耗尽</strong></td>
+  <td>用户创建大量书籍/章节（元数据累积），或单本书记忆数据过大</td>
+  <td><code>_safeSetItem</code> 触发应急清理（清空最老的 chapters_/memory_），可能导致旧书数据丢失</td>
+  <td>定期提示用户导出备份；实现"归档"功能将不活跃书籍的元数据压缩或迁移到 IndexedDB</td>
+</tr>
+<tr>
+  <td><strong>IndexedDB 事务超时</strong></td>
+  <td>写入大量章节数据（30s 超时），设备存储 I/O 繁忙</td>
+  <td>章节正文写入失败但元数据已更新，出现"章节存在但内容为空"的不一致状态</td>
+  <td>增加重试机制（指数退避）；事务失败时回滚元数据状态</td>
+</tr>
+<tr>
+  <td><strong>App 被杀/Crash 时数据丢失</strong></td>
+  <td>正在批量生成章节时 App 被系统回收或崩溃</td>
+  <td>已写入 localStorage 的元数据保留，但异步 IndexedDB 写入可能未完成</td>
+  <td>生成流程增加"断点续传"标记；启动时检查 pending 状态的章节并恢复</td>
+</tr>
+<tr>
+  <td><strong>备份导入覆盖现有数据</strong></td>
+  <td>用户误操作导入旧备份</td>
+  <td>当前数据被覆盖，虽有回滚保护但仅限 localStorage，IndexedDB 不一致</td>
+  <td>导入前显示备份摘要（时间/书籍数）；导入后自动校验 IndexedDB 完整性</td>
+</tr>
+</table>
+
+<h3>5.2 AI 服务质量风险（5个场景）</h3>
+<table class="risk-table">
+<tr><th style="width:22%">风险场景</th><th style="width:22%">触发条件</th><th style="width:28%">影响</th><th>缓解建议</th></tr>
+<tr>
+  <td><strong>Spec 生成失败导致降级生成质量下降</strong></td>
+  <td><code>generateChapterSpec</code> 抛出异常</td>
+  <td>降级为直接生成（无 Spec 引导），缺少 before_state/after_state 约束，连贯性降低</td>
+  <td>增加 Spec 生成重试（至少 2 次）；降级时注入简化版 Spec（基于前文自动构建）</td>
+</tr>
+<tr>
+  <td><strong>AI 未按格式输出标记</strong></td>
+  <td>AI 未输出【摘要】【新人物】等标记</td>
+  <td><code>autoUpdateMemory</code> 无法提取信息，记忆更新不完整</td>
+  <td>已有 <code>_generateAISummary</code> 异步补充摘要；可增加输出格式校验并在失败时重试</td>
+</tr>
+<tr>
+  <td><strong>Writer System Prompt 被截断</strong></td>
+  <td>DeepSeek 等模型对 system prompt 有长度限制（部分模型限制 ~4K tokens）</td>
+  <td>System Prompt 约 90 行（包含 40 遗憾形态），可能被模型截断导致写作原则不完整</td>
+  <td>监控实际 token 消耗；对不支持长 system prompt 的模型做动态压缩</td>
+</tr>
+<tr>
+  <td><strong>自动评审循环无限重试</strong></td>
+  <td><code>autoWriteChapter</code> 中评审-修订循环（第259行）评分始终不达标</td>
+  <td>最多 2 次修订后停止（有保护），但会消耗大量 API 调用</td>
+  <td>增加总时间限制（如 5 分钟内必须完成）；在评分持续不达标时提示用户人工介入</td>
+</tr>
+<tr>
+  <td><strong>上下文窗口溢出</strong></td>
+  <td><code>buildContextMemory</code> 聚合的记忆 + 前文结尾 + 章节规划超过模型上下文限制</td>
+  <td>AI 可能忽略最早的内容（"遗忘"前面的剧情），导致连贯性问题</td>
+  <td>增加 token 估算逻辑（每字符 ~0.5 token）；在接近限制时更激进地截断</td>
+</tr>
+</table>
+
+<h3>5.3 原生桥接风险（4个场景）</h3>
+<table class="risk-table">
+<tr><th style="width:22%">风险场景</th><th style="width:22%">触发条件</th><th style="width:28%">影响</th><th>缓解建议</th></tr>
+<tr>
+  <td><strong>返回栈计数不一致</strong></td>
+  <td>用户快速连续操作 Sheet 打开/关闭，或 WebView 意外刷新</td>
+  <td>Android 返回键行为异常：按一次返回多级，或按多次无反应</td>
+  <td>增加栈深度校验（JS 端维护计数与原生同步检查）；定期 resetStack 校准</td>
+</tr>
+<tr>
+  <td><strong>Base64 编码文件过大导致原生崩溃</strong></td>
+  <td>导出超长小说（如 500 章 × 3000 字 = 1.5M 字符），Base64 后 ~2MB</td>
+  <td>Java 端 <code>writeTempFile</code> 可能 OOM 或 Intent 数据超限</td>
+  <td>大文件分片写入；使用 FileProvider 流式传输代替一次性 Base64</td>
+</tr>
+<tr>
+  <td><strong>文件选择器回调丢失</strong></td>
+  <td><code>pickFile</code> 后 WebView 被重建或页面刷新</td>
+  <td><code>window.__onFilePicked</code> 回调丢失，文件选择器打开但结果无法传回 JS</td>
+  <td>增加超时处理（30s 后自动清理回调并提示用户重试）</td>
+</tr>
+<tr>
+  <td><strong>Capacitor 插件未就绪</strong></td>
+  <td>应用启动时 Capacitor 初始化未完成即调用 Filesystem API</td>
+  <td>备份自动恢复失败，用户数据可能无法加载</td>
+  <td>增加 <code>waitForCapacitor()</code> 就绪检测；设置合理的超时和降级路径</td>
+</tr>
+</table>
+
+<h3>5.4 UI/UX 边缘情况（5个场景）</h3>
+<table class="risk-table">
+<tr><th style="width:22%">风险场景</th><th style="width:22%">触发条件</th><th style="width:28%">影响</th><th>缓解建议</th></tr>
+<tr>
+  <td><strong>批量生成中切换页面</strong></td>
+  <td>章节正在异步生成时，用户切换到书架或其他页面</td>
+  <td><code>_refreshChapterItemInPlace</code> 尝试更新已不在 DOM 中的元素，静默失败；<code>_refreshDetailAfterGenerate</code> 可能在不正确的页面刷新</td>
+  <td>增加"离开确认"对话框；批量生成期间禁用底部导航</td>
+</tr>
+<tr>
+  <td><strong>低端设备大文本渲染</strong></td>
+  <td>在内存 < 2GB 的设备上打开超长章节（> 10K 字）</td>
+  <td>innerHTML 渲染大量 <code>&lt;p&gt;</code> 标签导致页面卡顿甚至 ANR</td>
+  <td>分页加载；使用 <code>content-visibility: auto</code> CSS 属性</td>
+</tr>
+<tr>
+  <td><strong>快速连续点击</strong></td>
+  <td>用户快速点击"生成章节"按钮多次</td>
+  <td>虽有 <code>_readerLock</code> 保护阅读器，但章节生成入口 <code>generateChapters()</code> 没有防抖保护</td>
+  <td>增加 <code>_generatingLock</code> 或按钮禁用状态</td>
+</tr>
+<tr>
+  <td><strong>网络断连时 AI 调用挂起</strong></td>
+  <td>AI 生成中途网络断开（WiFi 切换 4G 等）</td>
+  <td><code>fetch()</code> 等待默认超时（浏览器默认可达 90s），用户界面长时间显示"生成中"</td>
+  <td>已有 120s AbortController 超时，但可增加网络状态监听和更友好的断连提示</td>
+</tr>
+<tr>
+  <td><strong>多 Tab 同时操作同一本书</strong></td>
+  <td>用户在浏览器中打开多个 Tab 操作同一 WebView 数据</td>
+  <td>localStorage 在多个 Tab 间共享，可能导致竞态覆盖</td>
+  <td>使用 <code>BroadcastChannel</code> 或 <code>storage</code> 事件同步跨 Tab 状态（低优先级，WebView 场景较少见）</td>
+</tr>
+</table>
+
+<!-- ============ 六、Skill 对齐 ============ -->
+<h2 id="skills">六、Skill 对齐差距分析</h2>
+
+<h3>6.1 与"开放小说创作助手"Skill 的对齐情况</h3>
+
+<div class="summary-box">
+  <p><strong>对齐度：高（85%）</strong> — 核心的 6 模块工作流已实现。</p>
+</div>
+
+<table class="risk-table">
+<tr><th>Skill 规范要求</th><th>当前实现</th><th>差距</th></tr>
+<tr>
+  <td><strong>模块1：设定管理</strong> — AI 扩展世界观设定</td>
+  <td>✅ <code>AIService.generateSetting()</code> + <code>Guide._generateSetting()</code> 交互式引导</td>
+  <td>无显著差距</td>
+</tr>
+<tr>
+  <td><strong>模块2：大纲生成</strong> — 结构化大纲</td>
+  <td>✅ <code>AIService.generateOutline()</code> + 卖点提炼 + 侧重方向选择</td>
+  <td>无显著差距</td>
+</tr>
+<tr>
+  <td><strong>模块3：章节 Spec</strong> — YAML 格式规格</td>
+  <td>✅ <code>AIService.generateChapterSpec()</code> 生成 before_state/after_state/must_happen/tension_curve</td>
+  <td>无显著差距</td>
+</tr>
+<tr>
+  <td><strong>模块4：正文生成</strong> — 基于 Spec</td>
+  <td>✅ <code>AIService.generateChapterContent()</code> + <code>generateChapters()</code> 批量生成</td>
+  <td>无显著差距</td>
+</tr>
+<tr>
+  <td><strong>模块5：评审反馈</strong> — 五维度评分 + P0 红线</td>
+  <td>✅ <code>AIService.reviewChapter()</code> + <code>_checkP0Issues()</code></td>
+  <td>⚠️ <strong>差距1</strong>：P0 检查仅依赖正则匹配已知套话词库（10个固定模式），无法检测新形态的 AI 套话</td>
+</tr>
+<tr>
+  <td><strong>模块6：自动化推进</strong> — Spec→写→审→修循环</td>
+  <td>✅ <code>AIService.autoWriteChapter()</code> + <code>workflow.js</code></td>
+  <td>⚠️ <strong>差距2</strong>：修订循环最多 2 次，但未检查修订是否真正改进（可能修订后质量反而下降）</td>
+</tr>
+<tr>
+  <td><strong>分级红线机制</strong></td>
+  <td>✅ P0 红线规则已嵌入 Writer System Prompt</td>
+  <td>⚠️ <strong>差距3</strong>：缺乏 P1（建议优化）级别的自动检查（如对话辨识度、节奏问题）</td>
+</tr>
+</table>
+
+<h3>6.2 与"YZTurboWebAndroid"Skill 的对齐情况</h3>
+
+<div class="summary-box">
+  <p><strong>对齐度：中（70%）</strong> — 基础 WebView 集成已完成，但离线包和性能优化方面有差距。</p>
+</div>
+
+<table class="risk-table">
+<tr><th>Skill 规范要求</th><th>当前实现</th><th>差距</th></tr>
+<tr>
+  <td><strong>WebView 预加载与复用</strong></td>
+  <td>❌ 未实现</td>
+  <td>⚠️ <strong>差距1</strong>：无 WebView 池化/预加载机制。首次打开 WebView 时白屏时间依赖系统 WebView 初始化速度</td>
+</tr>
+<tr>
+  <td><strong>离线包管理</strong></td>
+  <td>❌ 未实现</td>
+  <td>⚠️ <strong>差距2</strong>：所有 HTML/JS/CSS 资源打包在 APK 中（assets 目录），无离线包增量更新机制。更新前端代码需要发新版本 APK</td>
+</tr>
+<tr>
+  <td><strong>JS Bridge 双向通信</strong></td>
+  <td>✅ <code>AndroidShare</code> + <code>AndroidBackStack</code> JavascriptInterface</td>
+  <td>⚠️ <strong>差距3</strong>：缺少通用的 Bridge 协议层（如统一的消息格式、回调 ID 管理、超时处理）。当前每个接口独立实现</td>
+</tr>
+<tr>
+  <td><strong>WebView 性能优化</strong></td>
+  <td>部分实现（CSS 变量主题、字体大小变体）</td>
+  <td>⚠️ <strong>差距4</strong>：未使用 WebView 的 <code>setLayerType(LAYER_TYPE_HARDWARE)</code>、未开启 DOM 缓存策略等原生层优化</td>
+</tr>
+</table>
+
+<!-- ============ 七、综合评估 ============ -->
+<h2 id="summary">七、综合评估</h2>
+
+<div class="summary-box">
+  <h3 style="margin-top:0">整体评分：B+（良好，有改进空间）</h3>
+  <p>灵墨是一个设计良好的 AI 辅助小说创作工具，核心的 Spec 驱动创作流程和持久记忆系统是其最大的亮点。但混合存储（localStorage + IndexedDB）的一致性问题是最大的技术债务，建议优先修复 4 个 P0 缺陷。</p>
+</div>
+
+<h3>优先修复路线图</h3>
+<table class="risk-table">
+<tr><th>优先级</th><th>修复项</th><th>预计工作量</th><th>影响范围</th></tr>
+<tr>
+  <td><span class="tag tag-p0">P0</span></td>
+  <td>修复 IndexedDB 写入未等待导致的数据丢失（#1、#4）</td>
+  <td>2-3小时</td>
+  <td>所有章节修改/导入操作</td>
+</tr>
+<tr>
+  <td><span class="tag tag-p0">P0</span></td>
+  <td>修复 <code>_handleBackAction</code> 和 <code>clearAllData</code>（#2、#3）</td>
+  <td>30分钟</td>
+  <td>返回导航 / 数据清空</td>
+</tr>
+<tr>
+  <td><span class="tag tag-p1">P1</span></td>
+  <td>修复章节 ID 碰撞 + 封面确定性渲染（#5、#6）</td>
+  <td>1小时</td>
+  <td>章节管理 / 封面显示</td>
+</tr>
+<tr>
+  <td><span class="tag tag-p1">P1</span></td>
+  <td>修复大纲截断 + 无限循环风险（#7、#8）</td>
+  <td>1小时</td>
+  <td>章节规划模块</td>
+</tr>
+<tr>
+  <td><span class="tag tag-p1">P1</span></td>
+  <td>修复导出/导入 IndexedDB 数据一致性（#9）</td>
+  <td>2-3小时</td>
+  <td>数据备份/恢复</td>
+</tr>
+<tr>
+  <td><span class="tag tag-p2">P2</span></td>
+  <td>性能优化 + 速率限制 + 虚拟滚动（#10-#13）</td>
+  <td>4-6小时</td>
+  <td>用户体验</td>
+</tr>
+</table>
+
+<h3>架构亮点</h3>
+<ul>
+  <li><strong>Spec 驱动生成</strong>：两阶段（Spec → Content）的章节生成方式，是长篇创作质量的关键创新</li>
+  <li><strong>持久记忆系统</strong>：人物状态历史、因果链压缩、多维度矛盾检测，在同类工具中较为少见</li>
+  <li><strong>多路径降级</strong>：从 NativeShare → Capacitor → plus.io → 浏览器下载的四级降级策略，确保了各环境的兼容性</li>
+  <li><strong>Writer System Prompt 设计</strong>：悲剧底色 + 40 遗憾形态 + P0 红线规则，体现了对网文创作规律的深入理解</li>
+  <li><strong>两阶段章节规划</strong>：整体蓝图 + 分批详细规划，解决了长篇小说章节规划的"只见树木不见森林"问题</li>
+</ul>
+
+<h3>主要技术债务</h3>
+<ul>
+  <li><strong>混合存储一致性</strong>：localStorage 和 IndexedDB 之间缺乏事务保证，数据丢失风险是最紧迫的问题</li>
+  <li><strong>全局状态管理</strong>：<code>currentBookId</code>、<code>currentChapterIndex</code> 等全局变量缺乏封装，多模块间状态同步靠"约定"</li>
+  <li><strong>错误处理不完整</strong>：大量 <code>try/catch</code> 块仅 <code>console.warn</code> 而未向用户提供可操作的反馈</li>
+  <li><strong>测试缺失</strong>：无任何单元测试或集成测试，所有质量保障依赖人工验证</li>
+</ul>
+
+<p style="text-align:center;color:var(--muted);margin-top:48px;font-size:13px">
+  —— 报告完 ——
+</p>
+
+</body>
+</html>

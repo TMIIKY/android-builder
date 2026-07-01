@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 生成封面效果预览</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Noto Serif SC', 'PingFang SC', serif;
+    background: #171410;
+    color: #e8e3d8;
+    padding: 24px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  h1 { color: #c9a050; font-size: 20px; text-align: center; margin-bottom: 6px; }
+  .sub { text-align: center; color: #a09888; font-size: 13px; margin-bottom: 24px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .cover {
+    aspect-ratio: 3/4;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .cover:active { transform: scale(0.96); }
+  .cover-title {
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    z-index: 1;
+  }
+  .cover-author {
+    font-size: 11px;
+    opacity: 0.6;
+    margin-top: 6px;
+    z-index: 1;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+  .cover-label {
+    text-align: center;
+    color: #a09888;
+    font-size: 12px;
+    margin-top: 8px;
+  }
+
+  /* 装饰元素 */
+  .stars { position: absolute; inset:0; overflow:hidden; }
+  .star {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: #fff;
+    border-radius: 50%;
+    animation: twinkle 3s infinite;
+  }
+  @keyframes twinkle {
+    0%,100% { opacity:0.3; }
+    50% { opacity:1; }
+  }
+  .rings {
+    position: absolute;
+    width: 140px; height: 140px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 50%;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+  }
+  .rings::after {
+    content: '';
+    position: absolute;
+    width: 100px; height: 100px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 50%;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+  }
+
+  .wave {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 60px;
+    background: linear-gradient(transparent, rgba(255,255,255,0.08));
+    clip-path: polygon(0 60%, 10% 40%, 20% 55%, 30% 35%, 40% 50%, 50% 30%, 60% 45%, 70% 35%, 80% 50%, 90% 40%, 100% 55%, 100% 100%, 0 100%);
+  }
+
+  .heart {
+    position: absolute;
+    bottom: 20px;
+    opacity: 0.15;
+    font-size: 40px;
+  }
+
+  .moon {
+    position: absolute;
+    top: 20px; right: 20px;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    box-shadow: 0 0 20px rgba(255,255,255,0.05);
+  }
+
+  .blood {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 50%;
+    background: linear-gradient(transparent, rgba(200,0,0,0.15));
+  }
+
+  .lines {
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(255,255,255,0.02) 20px, rgba(255,255,255,0.02) 21px);
+  }
+
+  .info-box {
+    background: #28241e;
+    border: 1px solid #332e25;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 16px;
+    font-size: 13px;
+    color: #a09888;
+    line-height: 1.8;
+  }
+  .info-box strong { color: #c9a050; }
+</style>
+</head>
+<body>
+
+<h1>AI 生成封面 · 效果预览</h1>
+<p class="sub">根据书名和类型，AI 自动匹配配色和装饰</p>
+
+<div class="grid">
+  <!-- 科幻 -->
+  <div>
+    <div class="cover" style="background:linear-gradient(135deg,#0a0a2e,#1a1a4e,#0d1b3e)">
+      <div class="stars">
+        <div class="star" style="top:15%;left:20%"></div>
+        <div class="star" style="top:25%;left:70%"></div>
+        <div class="star" style="top:45%;left:35%"></div>
+        <div class="star" style="top:60%;left:80%"></div>
+        <div class="star" style="top:75%;left:15%"></div>
+        <div class="star" style="top:30%;left:55%"></div>
+        <div class="star" style="top:80%;left:65%"></div>
+        <div class="star" style="top:10%;left:85%"></div>
+      </div>
+      <div class="rings"></div>
+      <span class="cover-title" style="font-size:28px;color:#c8e6ff">三体</span>
+      <span class="cover-author">AI 创作</span>
+    </div>
+    <div class="cover-label">科幻 · 深空+星环</div>
+  </div>
+
+  <!-- 悬疑 -->
+  <div>
+    <div class="cover" style="background:linear-gradient(160deg,#1a0a0a,#2d0a0a,#1a0505)">
+      <div class="blood"></div>
+      <div class="moon"></div>
+      <span class="cover-title" style="font-size:28px;color:#e8cccc">罪与罚</span>
+      <span class="cover-author">AI 创作</span>
+    </div>
+    <div class="cover-label">悬疑 · 暗红+血月</div>
+  </div>
+
+  <!-- 言情 -->
+  <div>
+    <div class="cover" style="background:linear-gradient(150deg,#2d1a2d,#3d1a3d,#2a1a35)">
+      <div class="heart">❤️</div>
+      <div class="wave"></div>
+      <span class="cover-title" style="font-size:26px;color:#f8d8e8">盛夏之约</span>
+      <span class="cover-author">AI 创作</span>
+    </div>
+    <div class="cover-label">言情 · 紫粉+爱心</div>
+  </div>
+
+  <!-- 奇幻 -->
+  <div>
+    <div class="cover" style="background:linear-gradient(135deg,#1a2d1a,#0d2d1a,#1a3d2d)">
+      <div class="rings" style="border-color:rgba(100,255,150,0.12)"></div>
+      <span class="cover-title" style="font-size:26px;color:#d0f0d0">龙族纪元</span>
+      <span class="cover-author">AI 创作</span>
+    </div>
+    <div class="cover-label">奇幻 · 墨绿+光晕</div>
+  </div>
+
+  <!-- 武侠 -->
+  <div>
+    <div class="cover" style="background:linear-gradient(160deg,#1a1a0d,#2d2a0d,#1a1505)">
+      <div class="lines"></div>
+      <span class="cover-title" style="font-size:28px;color:#f0e8c8;writing-mode:vertical-lr;letter-spacing:6px">江湖行</span>
+      <span class="cover-author" style="writing-mode:vertical-lr">AI 创作</span>
+    </div>
+    <div class="cover-label">武侠 · 古纸+竖排</div>
+  </div>
+
+  <!-- 都市 -->
+  <div>
+    <div class="cover" style="background:linear-gradient(135deg,#1a1a2e,#2a2a3e,#1a1a30)">
+      <div class="stars">
+        <div class="star" style="top:20%;left:15%;width:1px;height:1px"></div>
+        <div class="star" style="top:30%;left:80%;width:1px;height:1px"></div>
+        <div class="star" style="top:50%;left:10%;width:1px;height:1px"></div>
+        <div class="star" style="top:70%;left:85%;width:1px;height:1px"></div>
+        <div class="star" style="top:85%;left:30%;width:1px;height:1px"></div>
+      </div>
+      <span class="cover-title" style="font-size:26px;color:#d0d8f0">城市之光</span>
+      <span class="cover-author">AI 创作</span>
+    </div>
+    <div class="cover-label">都市 · 夜空+微光</div>
+  </div>
+</div>
+
+<div class="info-box">
+  <strong>实现原理：</strong><br>
+  1. AI 根据书名+类型 → 返回配色方案（JSON）<br>
+  2. 纯 CSS 渲染：渐变背景 + 装饰元素（星星/光晕/波纹/竖排）<br>
+  3. 无需图片 API，离线可用，预设模板兜底<br>
+  4. 用户可在编辑作品时点「✨ AI 生成封面」一键换皮
+</div>
+
+</body>
+</html>

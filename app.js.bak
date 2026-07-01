@@ -1,0 +1,914 @@
+/**
+ * 主应用逻辑 - 阅读驱动
+ * 书籍详情 = 摘要区 + 正文阅读器
+ * 全屏阅读 = 翻页模式
+ * AI = 读者反馈 → AI改写
+ */
+
+// ============ 全局状态 ============
+let currentBookId = null;
+let currentChapterIndex = 0;  // 当前阅读章节索引
+let isSummaryExpanded = false;
+let planTab = 'setting'; // 规划页当前标签
+
+// ============ 初始化 ============
+document.addEventListener('DOMContentLoaded', () => {
+    _initApp();
+});
+
+function _initApp() {
+    // 默认启动灵墨对话
+    Brainstorm.init();
+    renderBookshelf();
+    renderModelList();
+    updateActiveModelSelect();
+    const models = Storage.getModels();
+    if (models.length === 0) {
+        setTimeout(() => showToast('请先在设置中配置AI模型', 3000), 500);
+    }
+}
+
+// ============ 页面导航 ============
+function switchTab(tab) {
+    document.querySelectorAll('.bottom-nav-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.page === tab);
+    });
+    document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+
+    // 显示底部导航
+    document.querySelector('.bottom-nav').style.display = '';
+
+    const pageMap = {
+        'brainstorm': 'brainstormPage',
+        'bookshelf': 'bookshelfPage',
+        'workflow': 'workflowPage',
+        'settings': 'settingsPage'
+    };
+    const pageId = pageMap[tab];
+    if (pageId) document.getElementById(pageId).classList.add('active');
+
+    document.getElementById('navBack').style.display = 'none';
+    document.getElementById('navTitle').textContent = '灵墨';
+    document.getElementById('navAction').style.display = '';
+
+    if (tab === 'brainstorm') {
+        Brainstorm.init();  // init内部已处理消息历史保留
+    }
+    if (tab === 'bookshelf') { currentBookId = null; currentChapterIndex = 0; renderBookshelf(); }
+    if (tab === 'settings') { renderModelList(); updateActiveModelSelect(); }
+}
+
+function goBack() {
+    if (document.getElementById('readerPage').classList.contains('active')) {
+        closeReader();
+    } else if (document.getElementById('guidePage').classList.contains('active')) {
+        Guide._goBack();
+    } else if (document.getElementById('bookDetailPage').classList.contains('active')) {
+        switchTab('bookshelf');
+    } else if (document.getElementById('planManagerPage').classList.contains('active')) {
+        showBookDetail(currentBookId);
+    }
+}
+
+function startGuide(mode) {
+    if (!currentBookId) { showToast('请先从书架选择一本书'); return; }
+    Guide.start(currentBookId, mode);
+}
+
+function openSettings() { switchTab('settings'); }
+
+// ============ 书架页面 ============
+function renderBookshelf() {
+    const books = Storage.getBooks();
+    const grid = document.getElementById('bookGrid');
+    if (books.length === 0) {
+        grid.innerHTML = `<div class="empty-state">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            <p>还没有书籍，点击上方按钮创建第一本书吧</p></div>`;
+        return;
+    }
+    const colors = ['#6366f1','#8b5cf6','#ec4899','#f43f5e','#f97316','#14b8a6'];
+    grid.innerHTML = books.map(book => {
+        const chapters = Storage.getChapters(book.id);
+        const color = colors[Math.abs((book.id.split('_')[1] || 0) % colors.length)];
+        return `<div class="book-card" onclick="showBookDetail('${book.id}')">
+            <div class="book-cover" style="background: linear-gradient(135deg, ${color}, ${color}dd)">
+                <span class="book-cover-title">${book.name.substring(0, 4)}</span>
+            </div>
+            <div class="book-card-info">
+                <h4>${book.name}</h4>
+                <p class="book-meta">${book.genre} · ${chapters.length}章</p>
+                <p class="book-desc-truncate">${book.desc || '暂无简介'}</p>
+            </div>
+            <button class="book-card-action" onclick="event.stopPropagation(); confirmDeleteBook('${book.id}')">删除</button>
+        </div>`;
+    }).join('');
+}
+
+function showCreateBookModal() {
+    document.getElementById('editBookId').value = '';
+    document.getElementById('bookName').value = '';
+    document.getElementById('bookGenre').value = '玄幻';
+    document.getElementById('bookDesc').value = '';
+    document.getElementById('bookSetting').value = '';
+    document.getElementById('bookMetaModal').classList.add('active');
+}
+
+function saveBookMeta() {
+    const id = document.getElementById('editBookId').value;
+    const name = document.getElementById('bookName').value.trim();
+    const genre = document.getElementById('bookGenre').value;
+    const desc = document.getElementById('bookDesc').value.trim();
+    const setting = document.getElementById('bookSetting').value.trim();
+    if (!name) { showToast('请输入书名'); return; }
+    if (id) {
+        Storage.updateBook(id, { name, genre, desc, setting });
+    } else {
+        const book = Storage.addBook({ name, genre, desc, setting });
+        // 自动设置 currentBookId
+        if (book) currentBookId = book.id;
+    }
+    document.getElementById('bookMetaModal').classList.remove('active');
+    renderBookshelf();
+    if (currentBookId) showBookDetail(currentBookId);
+    showToast(id ? '信息已更新' : '书籍已创建');
+}
+
+function openBookMetaModal() {
+    if (!currentBookId) return;
+    const book = Storage.getBook(currentBookId);
+    document.getElementById('editBookId').value = currentBookId;
+    document.getElementById('bookName').value = book.name;
+    document.getElementById('bookGenre').value = book.genre;
+    document.getElementById('bookDesc').value = book.desc || '';
+    document.getElementById('bookSetting').value = book.setting || '';
+    document.getElementById('bookMetaModal').classList.add('active');
+}
+
+let _pendingDeleteBookId = null;
+
+function confirmDeleteBook(bookId) {
+    _pendingDeleteBookId = bookId;
+    const book = Storage.getBook(bookId);
+    document.getElementById('confirmTitle').textContent = '删除书籍';
+    document.getElementById('confirmMessage').textContent = `确定要删除《${book?.name || '未知'}》吗？所有章节和记忆将被永久清除，无法恢复。`;
+    document.getElementById('confirmModal').classList.add('active');
+}
+
+function doDeleteBook() {
+    if (!_pendingDeleteBookId) return;
+    const bookId = _pendingDeleteBookId;
+    Storage.deleteBook(bookId);
+    if (currentBookId === bookId) { currentBookId = null; currentChapterIndex = 0; }
+    _pendingDeleteBookId = null;
+    document.getElementById('confirmModal').classList.remove('active');
+    renderBookshelf();
+    showToast('书籍已删除');
+}
+
+// ============ 书籍详情页（阅读模式） ============
+function showBookDetail(bookId) {
+    currentBookId = bookId;
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('bookDetailPage').classList.add('active');
+    document.getElementById('navBack').style.display = '';
+    document.getElementById('navTitle').textContent = '阅读';
+    document.getElementById('navAction').style.display = 'none';
+
+    // 重置摘要收起
+    isSummaryExpanded = false;
+    document.getElementById('bookSummaryExpanded').style.display = 'none';
+    document.getElementById('summaryArrow').style.transform = 'rotate(0deg)';
+
+    renderBookDetail(bookId);
+}
+
+function toggleBookSummary() {
+    isSummaryExpanded = !isSummaryExpanded;
+    document.getElementById('bookSummaryExpanded').style.display = isSummaryExpanded ? '' : 'none';
+    document.getElementById('summaryArrow').style.transform = isSummaryExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
+function renderBookDetail(bookId) {
+    const book = Storage.getBook(bookId);
+    if (!book) { switchTab('bookshelf'); return; }
+    const chapters = Storage.getChapters(bookId);
+    const memory = Storage.getMemory(bookId);
+
+    // 摘要收起条
+    document.getElementById('summaryBookName').textContent = book.name;
+    const briefText = book.desc || book.setting || '点击展开查看书籍详情';
+    document.getElementById('summaryBrief').textContent = briefText.length > 50 ? briefText.substring(0, 50) + '...' : briefText;
+
+    // 摘要展开内容
+    document.getElementById('summaryContent').innerHTML = `
+        <div class="summary-section">
+            <span class="summary-label">类型</span>
+            <span>${book.genre}</span>
+        </div>
+        <div class="summary-section">
+            <span class="summary-label">简介</span>
+            <p>${book.desc || '暂无简介'}</p>
+        </div>
+        <div class="summary-section">
+            <span class="summary-label">世界观/设定</span>
+            <p>${book.setting || '暂无设定'}</p>
+        </div>
+        <div class="summary-section">
+            <span class="summary-label">统计</span>
+            <p>${chapters.length}章 · ${memory.characters.length}个人物 · ${memory.plotHooks.length}个伏笔</p>
+        </div>
+    `;
+
+    // 阅读器区域
+    const readerEmpty = document.getElementById('readerEmpty');
+    const readerContent = document.getElementById('readerContent');
+    const fabDetail = document.getElementById('fabAiDetail');
+
+    if (chapters.length === 0) {
+        readerEmpty.style.display = '';
+        readerContent.style.display = 'none';
+        fabDetail.style.display = 'none';
+    } else {
+        readerEmpty.style.display = 'none';
+        readerContent.style.display = '';
+        fabDetail.style.display = '';
+        currentChapterIndex = 0;
+        renderReaderContent(chapters[currentChapterIndex], 0, chapters.length);
+    }
+}
+
+function renderReaderContent(chapter, idx, total) {
+    if (!chapter) return;
+    document.getElementById('readerChapterTitle').textContent = `第${chapter.order}章 ${chapter.title}`;
+    const body = chapter.content
+        ? chapter.content.split('\n').map(p => `<p>${p || '&nbsp;'}</p>`).join('')
+        : '<p class="reader-placeholder">本章暂无内容</p>';
+    document.getElementById('readerBody').innerHTML = body;
+}
+
+// ============ 浮动反馈弹窗 ============
+function toggleDetailFeedback() {
+    const popup = document.getElementById('detailFeedbackPopup');
+    const isShowing = popup.style.display !== 'none';
+    popup.style.display = isShowing ? 'none' : '';
+    if (!isShowing) {
+        document.getElementById('feedbackInput').focus();
+    }
+}
+
+function toggleFeedbackBar() {
+    const popup = document.getElementById('feedbackPopup');
+    const isShowing = popup.style.display !== 'none';
+    popup.style.display = isShowing ? 'none' : '';
+    if (!isShowing) {
+        document.getElementById('feedbackFullInput').focus();
+    }
+}
+
+// ============ 全屏阅读器 ============
+let isLoadingNext = false;
+
+function openReader(chapterIndex) {
+    if (!currentBookId) return;
+    const chapters = Storage.getChapters(currentBookId);
+    if (chapters.length === 0) return;
+    currentChapterIndex = Math.max(0, Math.min(chapterIndex, chapters.length - 1));
+
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('readerPage').classList.add('active');
+    document.getElementById('navBack').style.display = 'none';
+    document.getElementById('fabAi').style.display = '';
+    document.getElementById('feedbackPopup').style.display = 'none';
+
+    renderFullReader(chapters[currentChapterIndex], currentChapterIndex, chapters.length);
+    // 绑定滚动监听
+    bindScrollListener();
+}
+
+function closeReader() {
+    unbindScrollListener();
+    document.getElementById('fabAi').style.display = 'none';
+    document.getElementById('feedbackPopup').style.display = 'none';
+    showBookDetail(currentBookId);
+}
+
+function renderFullReader(chapter, idx, total) {
+    if (!chapter) return;
+    document.getElementById('readerFullTitle').textContent = `第${chapter.order}章 ${chapter.title}`;
+    const body = chapter.content
+        ? chapter.content.split('\n').map(p => `<p>${p || '&nbsp;'}</p>`).join('')
+        : '<p class="reader-placeholder">本章暂无内容</p>';
+    document.getElementById('readerFullBody').innerHTML = body;
+
+    document.getElementById('readerProgress').textContent = `${idx + 1} / ${total}`;
+
+    // 章尾：自动下一章区域
+    const chapterEnd = document.getElementById('chapterEnd');
+    if (idx < total - 1) {
+        const nextChapter = Storage.getChapters(currentBookId)[idx + 1];
+        document.getElementById('chapterNextLabel').textContent = nextChapter ? `下一章 · ${nextChapter.title}` : '下一章';
+        chapterEnd.style.display = '';
+    } else {
+        chapterEnd.style.display = 'none';
+    }
+
+    // 滚动到顶部
+    document.getElementById('readerFullScroll').scrollTop = 0;
+    isLoadingNext = false;
+}
+
+// 滚动监听：滑到底部自动加载下一章
+function bindScrollListener() {
+    const scrollEl = document.getElementById('readerFullScroll');
+    if (!scrollEl) return;
+    scrollEl.addEventListener('scroll', handleReaderScroll);
+}
+
+function unbindScrollListener() {
+    const scrollEl = document.getElementById('readerFullScroll');
+    if (!scrollEl) return;
+    scrollEl.removeEventListener('scroll', handleReaderScroll);
+}
+
+function handleReaderScroll() {
+    if (isLoadingNext) return;
+    const scrollEl = document.getElementById('readerFullScroll');
+    if (!scrollEl) return;
+
+    // 滚动到底部附近（距离底部 200px 以内）
+    const threshold = 200;
+    const nearBottom = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - threshold;
+
+    if (nearBottom) {
+        const chapters = Storage.getChapters(currentBookId);
+        if (currentChapterIndex < chapters.length - 1) {
+            isLoadingNext = true;
+            // 小延迟，让用户看到"本章完"
+            setTimeout(() => {
+                currentChapterIndex++;
+                renderFullReader(chapters[currentChapterIndex], currentChapterIndex, chapters.length);
+            }, 300);
+        }
+    }
+}
+
+function prevChapter() {
+    if (!currentBookId) return;
+    const chapters = Storage.getChapters(currentBookId);
+    if (currentChapterIndex > 0) {
+        currentChapterIndex--;
+        renderFullReader(chapters[currentChapterIndex], currentChapterIndex, chapters.length);
+    }
+}
+
+function nextChapter() {
+    if (!currentBookId) return;
+    const chapters = Storage.getChapters(currentBookId);
+    if (currentChapterIndex < chapters.length - 1) {
+        currentChapterIndex++;
+        renderFullReader(chapters[currentChapterIndex], currentChapterIndex, chapters.length);
+    }
+}
+
+function openChapterMenu() {
+    if (!currentBookId) return;
+    const chapters = Storage.getChapters(currentBookId);
+    const body = document.getElementById('chapterMenuBody');
+    body.innerHTML = chapters.map((ch, i) => `
+        <div class="chapter-menu-item ${i === currentChapterIndex ? 'active' : ''}" onclick="jumpToChapter(${i})">
+            <span class="chapter-menu-order">第${ch.order}章</span>
+            <span class="chapter-menu-title">${ch.title}</span>
+            <span class="chapter-menu-words">${(ch.content || '').length}字</span>
+        </div>
+    `).join('');
+    document.getElementById('chapterMenuModal').classList.add('active');
+}
+
+function jumpToChapter(idx) {
+    closeModal('chapterMenuModal');
+    const chapters = Storage.getChapters(currentBookId);
+    if (chapters[idx]) {
+        currentChapterIndex = idx;
+        renderFullReader(chapters[idx], idx, chapters.length);
+    }
+}
+
+// ============ AI 反馈改写 ============
+async function aiRevise() {
+    const inputId = 'feedbackInput';
+    const bodyId = 'readerBody';
+    const feedback = document.getElementById(inputId).value.trim();
+    if (!feedback) { showToast('请先输入修改意见'); return; }
+    if (!currentBookId) return;
+
+    const chapters = Storage.getChapters(currentBookId);
+    const chapter = chapters[currentChapterIndex];
+    if (!chapter) return;
+
+    const model = Storage.getActiveModel();
+    if (!model) { showToast('请先配置AI模型'); return; }
+
+    toggleDetailFeedback(); // 关闭弹窗
+    showToast('AI正在修改...');
+
+    try {
+        const result = await AIService.reviseContent(currentBookId, chapter.content || '', feedback);
+        Storage.updateChapter(currentBookId, chapter.id, { content: result, status: 'draft' });
+        document.getElementById(bodyId).innerHTML = result.split('\n').map(p => `<p>${p || '&nbsp;'}</p>`).join('');
+        document.getElementById(inputId).value = '';
+        showToast('修改完成');
+    } catch (error) {
+        showToast('修改失败：' + error.message);
+    }
+}
+
+async function aiReviseFull() {
+    const inputId = 'feedbackFullInput';
+    const bodyId = 'readerFullBody';
+    const feedback = document.getElementById(inputId).value.trim();
+    if (!feedback) { showToast('请先输入修改意见'); return; }
+    if (!currentBookId) return;
+
+    const chapters = Storage.getChapters(currentBookId);
+    const chapter = chapters[currentChapterIndex];
+    if (!chapter) return;
+
+    const model = Storage.getActiveModel();
+    if (!model) { showToast('请先配置AI模型'); return; }
+
+    toggleFeedbackBar(); // 关闭弹窗
+    showToast('AI正在修改...');
+
+    try {
+        const result = await AIService.reviseContent(currentBookId, chapter.content || '', feedback);
+        Storage.updateChapter(currentBookId, chapter.id, { content: result, status: 'draft' });
+        // 刷新当前章节显示
+        renderFullReader(chapter, currentChapterIndex, chapters.length);
+        document.getElementById(inputId).value = '';
+        showToast('修改完成');
+    } catch (error) {
+        showToast('修改失败：' + error.message);
+    }
+}
+
+// ============ 新建章节 ============
+function showCreateChapterModal() {
+    document.getElementById('newChapterTitle').value = '';
+    document.getElementById('newChapterPrompt').value = '';
+    document.getElementById('chapterModal').classList.add('active');
+}
+
+async function createChapter() {
+    const title = document.getElementById('newChapterTitle').value.trim();
+    const prompt = document.getElementById('newChapterPrompt').value.trim();
+    if (!title) { showToast('请输入章节标题'); return; }
+    if (!currentBookId) return;
+
+    const chapter = Storage.addChapter(currentBookId, { title: title, content: '', status: 'draft', initialPrompt: prompt });
+    Storage.updateBook(currentBookId, { chapterCount: Storage.getChapters(currentBookId).length });
+    document.getElementById('chapterModal').classList.remove('active');
+
+    // 如果填写了提示词，按Skill规范：先生成Spec，再生成正文
+    if (prompt) {
+        showToast('[1/3] 生成章节Spec...');
+        try {
+            // Step 1: 生成Spec
+            const spec = await AIService.generateChapterSpec(currentBookId, chapter.order);
+            Storage.saveChapterSpec(currentBookId, chapter.order, spec);
+            showToast('[2/3] 基于Spec生成正文...');
+
+            // Step 2: 基于Spec生成正文
+            const content = await AIService.generateChapterContent(currentBookId, chapter.order, spec, prompt);
+            const autoTitle = extractChapterTitle(content, title);
+            Storage.updateChapter(currentBookId, chapter.id, { content: content, title: autoTitle || title, status: 'draft' });
+            showToast('[3/3] 章节生成完成');
+        } catch (e) {
+            showToast('生成失败：' + e.message);
+        }
+    }
+
+    renderBookDetail(currentBookId);
+}
+
+// 从AI生成的章节内容中提取简短名称
+function extractChapterTitle(content, fallback) {
+    if (!content) return fallback;
+    const firstLine = content.split('\n')[0] || '';
+    const cleaned = firstLine.replace(/【.*?】/g, '').trim();
+    if (cleaned.length > 3 && cleaned.length < 30) return cleaned;
+    if (cleaned.length >= 30) return cleaned.substring(0, 15) + '…';
+    return fallback;
+}
+
+// ============ 创作规划页（设定/大纲/章节规划集中管理） ============
+function openPlanManager() {
+    if (!currentBookId) return;
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('planManagerPage').classList.add('active');
+    document.getElementById('navBack').style.display = '';
+    document.getElementById('navTitle').textContent = '创作规划';
+    document.getElementById('navAction').style.display = 'none';
+    planTab = 'setting';
+    document.querySelectorAll('.plan-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector('.plan-tab[onclick*="setting"]').classList.add('active');
+    loadPlanContent('setting');
+}
+
+function switchPlanTab(tab) {
+    planTab = tab;
+    document.querySelectorAll('.plan-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`.plan-tab[onclick*="${tab}"]`).classList.add('active');
+    loadPlanContent(tab);
+}
+
+function loadPlanContent(tab) {
+    if (!currentBookId) return;
+    const plan = Storage.getPlans(currentBookId);
+    const content = plan[tab] || '';
+    const labels = { setting: '世界观设定', outline: '故事大纲', chapter_plan: '章节规划' };
+    if (content) {
+        document.getElementById('planContent').innerHTML = `
+            <div class="plan-text">${content.split('\n').map(p => `<p>${p || '&nbsp;'}</p>`).join('')}</div>`;
+    } else {
+        document.getElementById('planContent').innerHTML = `
+            <div class="plan-empty">
+                <p>暂无${labels[tab] || ''}内容</p>
+                <p class="hint">点击下方按钮让AI生成</p>
+            </div>`;
+    }
+}
+
+async function generatePlan() {
+    if (!currentBookId) return;
+    const model = Storage.getActiveModel();
+    if (!model) { showToast('请先配置AI模型'); return; }
+
+    const btn = document.getElementById('planGenerateBtn');
+    btn.disabled = true;
+    btn.textContent = '生成中...';
+    showToast('AI正在生成...');
+
+    try {
+        let result = '';
+        if (planTab === 'setting') {
+            result = await AIService.generateSetting(currentBookId);
+        } else if (planTab === 'outline') {
+            result = await AIService.generateOutline(currentBookId);
+        } else if (planTab === 'chapter_plan') {
+            const chapters = Storage.getChapters(currentBookId);
+            const nextNum = chapters.length + 1;
+            result = await AIService.generateChapterSpec(currentBookId, nextNum);
+            result = `## 第${nextNum}章 Spec\n\n${result}`;
+        }
+        Storage.savePlan(currentBookId, planTab, result);
+        loadPlanContent(planTab);
+        showToast('生成完成');
+    } catch (e) {
+        showToast('生成失败：' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>AI生成`;
+    }
+}
+
+// ============ 创作工作流 ============
+function showWorkflowModal() {
+    switchTab('workflow');
+}
+
+function runWorkflow(mode) {
+    if (mode === 'auto_write') { showAutoWriteModal(); return; }
+    if (!currentBookId) { showToast('请先从书架选择一本书'); return; }
+    Workflow.run(mode, currentBookId);
+}
+
+function showAutoWriteModal() {
+    if (!currentBookId) { showToast('请先从书架选择一本书'); return; }
+    document.getElementById('autoWriteModal').classList.add('active');
+}
+
+async function startAutoWrite() {
+    const count = parseInt(document.getElementById('autoChapterCount').value);
+    const wordCount = parseInt(document.getElementById('autoWordCount').value);
+    if (count < 1 || count > 10) { showToast('章数范围：1-10'); return; }
+    document.getElementById('autoWriteModal').classList.remove('active');
+    await Workflow.startAutoWrite(currentBookId, count, wordCount);
+    if (currentBookId) renderBookDetail(currentBookId);
+}
+
+function saveWorkflowResult() {
+    if (Workflow.state.bookId && Workflow.state.mode) {
+        const result = document.getElementById('wfResultBody').innerText;
+        Workflow._saveResultToBook(Workflow.state.bookId, Workflow.state.mode, result);
+    }
+}
+
+// ============ 记忆查看 ============
+function viewMemory(bookId) {
+    if (!bookId) return;
+    const memory = Storage.getMemory(bookId);
+    const book = Storage.getBook(bookId);
+    let content = `<h4>《${book.name}》记忆</h4>`;
+    content += `<p>人物：${memory.characters.length} | 伏笔：${memory.plotHooks.length} | 事件：${memory.keyEvents.length}</p>`;
+    if (memory.characters.length > 0) {
+        content += '<h5>人物</h5><ul>';
+        memory.characters.forEach(c => content += `<li><b>${c.name}</b>：${c.description || ''}（${c.status}）</li>`);
+        content += '</ul>';
+    }
+    if (memory.plotHooks.length > 0) {
+        content += '<h5>伏笔</h5><ul>';
+        memory.plotHooks.slice(-10).forEach(h => content += `<li>${typeof h === 'string' ? h : h.description}</li>`);
+        content += '</ul>';
+    }
+    document.getElementById('wfResultTitle').textContent = '记忆状态';
+    document.getElementById('wfResultBody').innerHTML = content;
+    document.getElementById('wfResultFooter').style.display = 'flex';
+    document.getElementById('wfSaveBtn').style.display = 'none';
+    document.getElementById('workflowResultModal').classList.add('active');
+}
+
+// ============ 模型管理 ============
+function renderModelList() {
+    const models = Storage.getModels();
+    const list = document.getElementById('modelList');
+    if (models.length === 0) { list.innerHTML = '<p class="empty-text">尚未配置任何AI模型</p>'; return; }
+    const presetNames = { deepseek:'DeepSeek', openai:'OpenAI GPT', claude:'Claude', qwen:'通义千问', glm:'智谱GLM', custom:'自定义' };
+    list.innerHTML = models.map(m => {
+        let versionLabel = m.modelName || '默认';
+        const preset = AIService.PRESETS[m.type];
+        if (preset && preset.versions) {
+            const found = preset.versions.find(v => v.id === m.modelName);
+            if (found) versionLabel = found.label;
+        }
+        return `<div class="model-item ${m.id === Storage.getActiveModelId() ? 'active' : ''}">
+            <div class="model-item-info">
+                <div class="model-icon">${(presetNames[m.type]||'A').charAt(0)}</div>
+                <div class="model-details">
+                    <strong>${presetNames[m.type]||m.type}</strong>
+                    <span>${versionLabel} · ${m.endpoint ? new URL(m.endpoint).hostname : '默认端点'}</span>
+                </div>
+            </div>
+            <div class="model-item-actions">
+                <button class="btn-icon" onclick="testModel('${m.id}')" title="测试连接"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></button>
+                <button class="btn-icon" onclick="deleteModel('${m.id}')" title="删除"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function updateActiveModelSelect() {
+    const models = Storage.getModels();
+    const select = document.getElementById('activeModel');
+    if (models.length === 0) { select.innerHTML = '<option value="">请先添加模型</option>'; return; }
+    const presetNames = { deepseek:'DeepSeek', openai:'OpenAI GPT', claude:'Claude', qwen:'通义千问', glm:'智谱GLM', custom:'自定义' };
+    select.innerHTML = models.map(m => {
+        let versionLabel = m.modelName || '默认';
+        const preset = AIService.PRESETS[m.type];
+        if (preset && preset.versions) { const f = preset.versions.find(v => v.id === m.modelName); if (f) versionLabel = f.label; }
+        return `<option value="${m.id}" ${m.id===Storage.getActiveModelId()?'selected':''}>${presetNames[m.type]||m.type} · ${versionLabel}</option>`;
+    }).join('');
+}
+
+function switchModel(modelId) { Storage.setActiveModelId(modelId); renderModelList(); showToast('模型已切换'); }
+
+function showAddModelModal() {
+    document.getElementById('modelType').value = 'deepseek';
+    document.getElementById('modelKey').value = '';
+    document.getElementById('modelEndpoint').value = '';
+    document.getElementById('modelName').value = '';
+    document.getElementById('modelVersion').innerHTML = '';
+    document.getElementById('modelVersionDesc').textContent = '';
+    onModelTypeChange();
+    document.getElementById('modelModal').classList.add('active');
+}
+
+function onModelTypeChange() {
+    const type = document.getElementById('modelType').value;
+    const isCustom = type === 'custom';
+    document.getElementById('customEndpointGroup').style.display = isCustom ? '' : 'none';
+    document.getElementById('customModelNameGroup').style.display = isCustom ? '' : 'none';
+    const preset = AIService.PRESETS[type];
+    const versionSelect = document.getElementById('modelVersion');
+    const versionGroup = document.getElementById('modelVersionGroup');
+    if (preset && !isCustom) {
+        versionGroup.style.display = '';
+        const versions = preset.versions || [];
+        if (versions.length > 0) {
+            versionSelect.innerHTML = versions.map((v, i) => `<option value="${v.id}" ${i===0?'selected':''}>${v.label}</option>`).join('');
+            document.getElementById('modelVersionDesc').textContent = versions[0].desc;
+        }
+        document.getElementById('modelPresetInfo').innerHTML = `<p>💡 <strong>${preset.name}</strong></p><p>端点：${preset.endpoint}</p><p class="hint">密钥加密存储，不会上传</p>`;
+    } else if (isCustom) {
+        versionGroup.style.display = 'none';
+        document.getElementById('modelPresetInfo').innerHTML = `<p>💡 <strong>自定义API</strong></p><p>请填写端点与模型名称</p><p class="hint">需兼容OpenAI格式</p>`;
+    }
+}
+
+function onModelVersionChange() {
+    const type = document.getElementById('modelType').value;
+    const versionId = document.getElementById('modelVersion').value;
+    const preset = AIService.PRESETS[type];
+    if (preset && preset.versions) {
+        const s = preset.versions.find(v => v.id === versionId);
+        if (s) document.getElementById('modelVersionDesc').textContent = s.desc;
+    }
+}
+
+async function addModel() {
+    const type = document.getElementById('modelType').value;
+    const apiKey = document.getElementById('modelKey').value.trim();
+    const endpoint = document.getElementById('modelEndpoint').value.trim();
+    const customModelName = document.getElementById('modelName').value.trim();
+    const versionEl = document.getElementById('modelVersion');
+    const selectedVersion = versionEl ? versionEl.value : '';
+    if (!apiKey) { showToast('请输入API密钥'); return; }
+    if (type === 'custom' && !endpoint) { showToast('请输入API端点'); return; }
+    const preset = AIService.PRESETS[type];
+    let modelName = type === 'custom' ? (customModelName || 'default-model') : (selectedVersion || preset?.model || '');
+    const obfuscatedKey = AIService.obfuscateKey(apiKey);
+    const model = { id: 'model_' + Date.now(), type, apiKey, apiKeyObfuscated: obfuscatedKey, endpoint: endpoint || preset?.endpoint || '', modelName, createdAt: new Date().toISOString() };
+    showToast('正在测试连接...');
+    const result = await AIService.testConnection(model);
+    if (!result.success) { showToast(`连接失败: ${result.message}`); return; }
+    const models = Storage.getModels(); models.push(model); Storage.saveModels(models);
+    if (!Storage.getActiveModelId()) Storage.setActiveModelId(model.id);
+    document.getElementById('modelModal').classList.remove('active');
+    renderModelList(); updateActiveModelSelect();
+    showToast(`${preset?.name || type} 接入成功！`);
+}
+
+async function testModel(modelId) {
+    const model = Storage.getModels().find(m => m.id === modelId);
+    if (!model) return;
+    showToast('正在测试...');
+    const result = await AIService.testConnection(model);
+    showToast(result.success ? '连接成功！' : `失败: ${result.message}`);
+}
+
+function deleteModel(modelId) {
+    if (confirm('确定删除？')) {
+        const models = Storage.getModels().filter(m => m.id !== modelId);
+        Storage.saveModels(models);
+        if (Storage.getActiveModelId() === modelId) Storage.setActiveModelId(models.length > 0 ? models[0].id : null);
+        renderModelList(); updateActiveModelSelect();
+        showToast('已删除');
+    }
+}
+
+// ============ 通用 ============
+function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); }
+
+let _toastTimer = null;
+function showToast(message, duration) {
+    // 固定时长，避免不同调用方传入不同时长导致提示不消失
+    const dur = (typeof duration === 'number' && duration > 0) ? duration : 2000;
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+    if (_toastTimer) clearTimeout(_toastTimer);
+    toast.textContent = message;
+    toast.classList.add('show');
+    _toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+        _toastTimer = null;
+    }, dur);
+}
+
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('active');
+});
+
+// ============ 滑动翻页（全屏阅读器） ============
+let touchStartX = 0, touchStartY = 0;
+document.addEventListener('DOMContentLoaded', () => {
+    const readerPage = document.getElementById('readerPage');
+    if (readerPage) {
+        readerPage.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
+        readerPage.addEventListener('touchend', (e) => {
+            if (!readerPage.classList.contains('active')) return;
+            const dx = e.changedTouches[0].clientX - touchStartX;
+            const dy = e.changedTouches[0].clientY - touchStartY;
+            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 80) {
+                if (dx < 0) nextChapter();
+                else prevChapter();
+            }
+        });
+    }
+});
+
+// ============ 数据导出 ============
+function exportData() {
+    if (typeof DataBackup !== 'undefined') {
+        DataBackup.exportData();
+        showToast('正在导出...');
+    } else {
+        // Web环境降级
+        const backup = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            try { backup[key] = JSON.parse(localStorage.getItem(key)); } 
+            catch { backup[key] = localStorage.getItem(key); }
+        }
+        const blob = new Blob([JSON.stringify({ version: 1, timestamp: new Date().toISOString(), data: backup }, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '灵墨_数据备份_' + new Date().toISOString().slice(0, 10) + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('导出完成');
+    }
+}
+
+function importData() {
+    if (typeof DataBackup !== 'undefined') {
+        DataBackup.importFromFile();
+    } else {
+        showToast('备份模块未加载');
+    }
+}
+
+function restoreFromBackup() {
+    if (!confirm('将从备份文件恢复数据，当前数据将被覆盖。确定继续？')) return;
+    if (typeof DataBackup !== 'undefined') {
+        showToast('正在恢复...');
+        DataBackup.restoreFromFile((result) => {
+            if (result && result.success) {
+                showToast(result.message);
+                renderBookshelf();
+                renderModelList();
+                updateActiveModelSelect();
+            } else {
+                showToast('恢复失败：' + (result ? result.message : '未找到备份'));
+            }
+        });
+    } else {
+        showToast('备份模块未加载');
+    }
+}
+
+function checkBackupStatus() {
+    const statusDiv = document.getElementById('backupStatus');
+    if (typeof DataBackup !== 'undefined') {
+        DataBackup.getBackupInfo((info) => {
+            if (info.native) {
+                statusDiv.style.display = '';
+                statusDiv.innerHTML = `
+                    <p><b>环境：</b>原生APP</p>
+                    <p><b>当前书籍数：</b>${info.booksCount}</p>
+                    <p><b>备份文件：</b>${info.hasBackupFile ? '存在 ✓' : '不存在 ✗'}</p>
+                    ${info.backupTimestamp ? `<p><b>备份时间：</b>${new Date(info.backupTimestamp).toLocaleString()}</p>` : ''}
+                    ${info.backupKeys ? `<p><b>备份数据项：</b>${info.backupKeys} 个</p>` : ''}
+                    <p style="margin-top:8px;color:#27ae60;font-size:12px;background:#e8f8e8;padding:8px;border-radius:4px">
+                        ✅ 卸载APP不丢失<br>
+                        📁 备份位置：内部存储 → Download → 灵墨<br>
+                        💡 卸载重装后点"从备份恢复"即可找回数据
+                    </p>
+                `;
+            } else {
+                statusDiv.style.display = '';
+                statusDiv.innerHTML = `<p><b>环境：</b>浏览器</p><p>数据存储在浏览器 localStorage 中</p><p style="margin-top:8px;color:var(--text-hint);font-size:12px">📁 导出文件会自动下载到浏览器的默认下载目录</p>`;
+            }
+        });
+    } else {
+        statusDiv.style.display = '';
+        statusDiv.innerHTML = '<p>备份模块未加载</p>';
+    }
+}
+
+// ============ 导出作品（TXT/HTML） ============
+function showExportBookModal() {
+    const books = Storage.getBooks();
+    const select = document.getElementById('exportBookSelect');
+    if (!select) return;
+
+    if (books.length === 0) {
+        showToast('请先创建一本书');
+        return;
+    }
+
+    select.innerHTML = books.map(b => `<option value="${b.id}">${b.name}（${b.genre || '未分类'}，${Storage.getChapters(b.id).length}章）</option>`).join('');
+    document.getElementById('exportBookModal').classList.add('active');
+}
+
+function doExportBook() {
+    const select = document.getElementById('exportBookSelect');
+    const bookId = select ? select.value : null;
+    if (!bookId) { showToast('请选择一本书'); return; }
+
+    const formatRadio = document.querySelector('input[name="exportFormat"]:checked');
+    const format = formatRadio ? formatRadio.value : 'txt';
+
+    const includePlans = document.getElementById('exportIncludePlans')?.checked ?? true;
+
+    document.getElementById('exportBookModal').classList.remove('active');
+
+    if (typeof DataBackup !== 'undefined') {
+        DataBackup.exportBook(bookId, format, { includePlans });
+    } else {
+        showToast('导出模块未加载');
+    }
+}

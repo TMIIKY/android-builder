@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>灵墨 · 图标方案预览</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+    background: #1f1c17;
+    color: #e8e3d8;
+    padding: 24px;
+    min-height: 100vh;
+  }
+  h1 {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 24px;
+    text-align: center;
+    margin-bottom: 8px;
+    color: #c9a050;
+  }
+  .subtitle {
+    text-align: center;
+    color: #a09888;
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+  .scheme {
+    background: #28241e;
+    border: 1px solid #332e25;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .scheme h2 {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 18px;
+    color: #c9a050;
+    margin-bottom: 6px;
+  }
+  .scheme .desc {
+    font-size: 13px;
+    color: #a09888;
+    margin-bottom: 20px;
+  }
+  .icon-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .icon-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    background: #1f1c17;
+    border: 1px solid #332e25;
+    border-radius: 12px;
+    min-width: 100px;
+    transition: border-color 0.2s;
+  }
+  .icon-card:hover { border-color: #c9a050; }
+  .icon-card svg { width: 48px; height: 48px; }
+  .icon-card .label { font-size: 12px; color: #a09888; }
+  .icon-card .label-cn { font-size: 13px; color: #e8e3d8; }
+
+  /* 模拟 App 环境 */
+  .mock-app {
+    background: #171410;
+    border: 1px solid #332e25;
+    border-radius: 24px;
+    max-width: 360px;
+    margin: 32px auto;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  }
+  .mock-status { height: 28px; background: #171410; }
+  .mock-topbar {
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1f1c17;
+    border-bottom: 1px solid #332e25;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: #c9a050;
+  }
+  .mock-bottom {
+    height: 56px;
+    display: flex;
+    background: #1f1c17;
+    border-top: 1px solid #332e25;
+  }
+  .mock-tab {
+    flex:1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: #6b6458;
+    font-size: 11px;
+  }
+  .mock-tab.active { color: #c9a050; }
+  .mock-tab svg { width: 22px; height: 22px; }
+
+  .usage-note {
+    background: rgba(201,160,80,0.1);
+    border: 1px solid rgba(201,160,80,0.2);
+    border-radius: 10px;
+    padding: 16px;
+    max-width: 480px;
+    margin: 0 auto 24px;
+    font-size: 13px;
+    color: #c9a050;
+    line-height: 1.6;
+  }
+  .usage-note code {
+    background: rgba(201,160,80,0.15);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<h1>灵墨 · 图标方案</h1>
+<p class="subtitle">明媚风格 · AI 写作工具品牌图标</p>
+
+<!-- 方案1: 主Logo -->
+<div class="scheme">
+  <h2>🎯 方案一：App 主图标 (Logo)</h2>
+  <p class="desc">推荐 <code>fluent:pen-sparkle</code> — 钢笔+星星，寓意"AI赋能写作"</p>
+  <div class="icon-row">
+    <div class="icon-card">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="#c9a050" d="M7.833 13.112a5.36 5.36 0 0 0-2.545-1.805l-2.602-.845a1.028 1.028 0 0 1 0-1.937l2.602-.845a5.36 5.36 0 0 0 3.323-3.33l.022-.064l.846-2.6a1.027 1.027 0 0 1 1.938 0l.846 2.6A5.36 5.36 0 0 0 15.66 7.68l2.603.845l.052.013a1.028 1.028 0 0 1 0 1.937l-2.603.845a5.36 5.36 0 0 0-3.396 3.394l-.846 2.6l-.025.064a1.027 1.027 0 0 1-1.538.433a1.03 1.03 0 0 1-.375-.497l-.846-2.6a5.4 5.4 0 0 0-.852-1.602m14.776 6.872l-1.378-.448a2.84 2.84 0 0 1-1.798-1.796l-.447-1.377a.544.544 0 0 0-1.027 0l-.448 1.377a2.84 2.84 0 0 1-1.77 1.796l-1.378.448a.545.545 0 0 0 0 1.025l1.378.448q.227.075.438.188l.003.015a2.84 2.84 0 0 1 1.357 1.61l.448 1.377a.545.545 0 0 0 1.01.039v-.01l.016-.039l.448-1.377a2.84 2.84 0 0 1 1.798-1.796l1.378-.448a.545.545 0 0 0 0-1.025zM24.53 19a2.54 2.54 0 0 0-1.23-.93h-.14l-1.31-.43a.8.8 0 0 1-.32-.19a.9.9 0 0 1-.2-.33l-.052-.164l10.93-10.93a6.907 6.907 0 1 1 9.767 9.767l-2.234 2.235l.935.998a4.25 4.25 0 0 1-.095 5.912l-3.446 3.446a1.25 1.25 0 1 1-1.768-1.768l3.446-3.446a1.75 1.75 0 0 0 .04-2.434l-.881-.94l-20.165 20.168a6 6 0 0 1-2.76 1.573L5.56 43.96a1.25 1.25 0 0 1-1.521-1.52l2.427-9.486a6 6 0 0 1 1.572-2.758L15 23.232l.149.049l.12.06q.109.06.2.15a.9.9 0 0 1 .2.33l.44 1.37a2.54 2.54 0 0 0 .89 1.35a2.55 2.55 0 0 0 3.8-1.05l.18-.42V25l.35-1.09q.069-.18.2-.32a.9.9 0 0 1 .33-.2l1.36-.44A2.55 2.55 0 0 0 25 20.5a2.52 2.52 0 0 0-.47-1.5"/></svg>
+      <span class="label-cn">主 Logo</span>
+      <span class="label">fluent:pen-sparkle</span>
+    </div>
+    <div class="icon-card">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#8b5cf6" d="M4.4 21L3 19.6l7.525-7.55L6 10.925l4.95-3.075L10.525 2L15 5.775l5.4-2.2L18.225 9L22 13.45l-5.85-.4l-3.1 4.95l-1.125-4.525zM5 8L3 6l2-2l2 2zm13 13l-2-2l2-2l2 2z"/></svg>
+      <span class="label-cn">魔法棒</span>
+      <span class="label">material-symbols:wand-stars</span>
+    </div>
+  </div>
+</div>
+
+<!-- 方案2: 底部导航 -->
+<div class="scheme">
+  <h2>📱 方案二：底部导航图标</h2>
+  <p class="desc">三个 Tab：灵墨(chat-sparkle) / 书架(book) / 我的(settings)</p>
+  <div class="icon-row">
+    <div class="icon-card">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="#c9a050" d="M31.833 13.112a5.36 5.36 0 0 0-2.544-1.805l-2.603-.845a1.028 1.028 0 0 1 0-1.937l2.602-.845a5.36 5.36 0 0 0 3.323-3.33l.022-.064l.845-2.6a1.027 1.027 0 0 1 1.94 0l.845 2.6A5.36 5.36 0 0 0 39.66 7.68l2.602.845l.052.013a1.028 1.028 0 0 1 0 1.937l-2.602.845a5.36 5.36 0 0 0-3.397 3.394l-.846 2.6l-.025.064a1.027 1.027 0 0 1-1.538.433a1.03 1.03 0 0 1-.375-.497l-.846-2.6a5.4 5.4 0 0 0-.852-1.602m14.776 6.872l-1.378-.448a2.84 2.84 0 0 1-1.797-1.796l-.448-1.377a.544.544 0 0 0-1.027 0l-.448 1.377a2.84 2.84 0 0 1-1.77 1.796l-1.378.448a.545.545 0 0 0 0 1.025l1.378.448q.227.075.438.188l.003.015a2.84 2.84 0 0 1 1.357 1.61l.448 1.377a.545.545 0 0 0 1.01.039v-.01l.016-.039l.448-1.377a2.84 2.84 0 0 1 1.798-1.796l1.378-.448a.545.545 0 0 0 0-1.025zM29.93 5q.042-.039.081-.081A20 20 0 0 0 24 4C12.954 4 4 12.954 4 24c0 3.448.873 6.695 2.411 9.528L4.07 41.766c-.375 1.318.843 2.537 2.162 2.162l8.236-2.342A19.9 19.9 0 0 0 24 44c10.16 0 18.551-7.577 19.831-17.388A2.55 2.55 0 0 1 41 26.54a2.54 2.54 0 0 1-.89-1.35l-.44-1.37a.9.9 0 0 0-.2-.33a1 1 0 0 0-.2-.15l-.12-.06l-1.42-.46a2.55 2.55 0 0 1-1.7-2.4c0-.346.075-.687.22-1a3 3 0 0 1-3.47 0a3 3 0 0 1-1.12-1.51l-.84-2.59a3.2 3.2 0 0 0-.54-1A3 3 0 0 0 30 14a3.3 3.3 0 0 0-1.35-.79L26 12.35a3 3 0 0 1-1.44-4.58a3.1 3.1 0 0 1 1.51-1.12l2.57-.83A3.4 3.4 0 0 0 29.93 5"/></svg>
+      <span class="label-cn">灵墨</span>
+      <span class="label">chat-sparkle</span>
+    </div>
+    <div class="icon-card">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <span class="label-cn">书架</span>
+      <span class="label">lucide:book-open</span>
+    </div>
+    <div class="icon-card">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span class="label-cn">我的</span>
+      <span class="label">lucide:settings</span>
+    </div>
+  </div>
+</div>
+
+<!-- 方案3: 功能图标 -->
+<div class="scheme">
+  <h2>✨ 方案三：功能入口图标</h2>
+  <p class="desc">书架页和设置页中的装饰图标</p>
+  <div class="icon-row">
+    <div class="icon-card">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#c9a050" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+      <span class="label-cn">收藏</span>
+      <span class="label">star</span>
+    </div>
+    <div class="icon-card">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="#5a9e6f" d="M13.833 6.112a5.36 5.36 0 0 0-2.545-1.805l-2.602-.845a1.028 1.028 0 0 1 0-1.937l2.602-.845a5.36 5.36 0 0 0 3.323-3.33l.846-2.6a1.027 1.027 0 0 1 1.938 0l.846 2.6A5.36 5.36 0 0 0 21.66.68l2.603.845l.052.013a1.028 1.028 0 0 1 0 1.937l-2.603.845a5.36 5.36 0 0 0-3.396 3.394l-.846 2.6l-.025.064a1.027 1.027 0 0 1-1.938 0l-.846-2.6a5.4 5.4 0 0 0-.852-1.602M40.833 30.112a5.36 5.36 0 0 0-2.545-1.805l-2.602-.845a1.028 1.028 0 0 1 0-1.937l2.602-.845a5.36 5.36 0 0 0 3.323-3.33l.846-2.6a1.027 1.027 0 0 1 1.938 0l.846 2.6A5.36 5.36 0 0 0 48.66 24.68l2.603.845l.052.013a1.028 1.028 0 0 1 0 1.937l-2.603.845a5.36 5.36 0 0 0-3.396 3.394l-.846 2.6l-.025.064a1.027 1.027 0 0 1-1.938 0l-.846-2.6a5.4 5.4 0 0 0-.852-1.602"/></svg>
+      <span class="label-cn">新建</span>
+      <span class="label">sparkle-circle</span>
+    </div>
+    <div class="icon-card">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <span class="label-cn">导出</span>
+      <span class="label">upload</span>
+    </div>
+    <div class="icon-card">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span class="label-cn">导入</span>
+      <span class="label">download</span>
+    </div>
+  </div>
+</div>
+
+<!-- 模拟 App -->
+<div class="usage-note">
+  💡 <strong>推荐组合</strong>：<br>
+  · Logo：<code>fluent:pen-sparkle</code>（琥珀金色）<br>
+  · 灵墨 Tab：<code>fluent:chat-sparkle</code>（金色星星气泡）<br>
+  · 书架 Tab：<code>lucide:book-open</code>（紫色）<br>
+  · 我的 Tab：<code>lucide:settings</code>（粉色）<br>
+  · 新建：<code>fluent:sparkle-circle</code>（绿色）<br>
+  · 导出/导入：<code>lucide:upload/download</code>
+</div>
+
+<div class="mock-app">
+  <div class="mock-status"></div>
+  <div class="mock-topbar">灵墨 · AI创作伙伴</div>
+  <div style="height:120px;display:flex;align-items:center;justify-content:center;background:#171410;">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="72" height="72"><path fill="#c9a050" d="M7.833 13.112a5.36 5.36 0 0 0-2.545-1.805l-2.602-.845a1.028 1.028 0 0 1 0-1.937l2.602-.845a5.36 5.36 0 0 0 3.323-3.33l.022-.064l.846-2.6a1.027 1.027 0 0 1 1.938 0l.846 2.6A5.36 5.36 0 0 0 15.66 7.68l2.603.845l.052.013a1.028 1.028 0 0 1 0 1.937l-2.603.845a5.36 5.36 0 0 0-3.396 3.394l-.846 2.6l-.025.064a1.027 1.027 0 0 1-1.538.433a1.03 1.03 0 0 1-.375-.497l-.846-2.6a5.4 5.4 0 0 0-.852-1.602m14.776 6.872l-1.378-.448a2.84 2.84 0 0 1-1.798-1.796l-.447-1.377a.544.544 0 0 0-1.027 0l-.448 1.377a2.84 2.84 0 0 1-1.77 1.796l-1.378.448a.545.545 0 0 0 0 1.025l1.378.448q.227.075.438.188l.003.015a2.84 2.84 0 0 1 1.357 1.61l.448 1.377a.545.545 0 0 0 1.01.039v-.01l.016-.039l.448-1.377a2.84 2.84 0 0 1 1.798-1.796l1.378-.448a.545.545 0 0 0 0-1.025zM24.53 19a2.54 2.54 0 0 0-1.23-.93h-.14l-1.31-.43a.8.8 0 0 1-.32-.19a.9.9 0 0 1-.2-.33l-.052-.164l10.93-10.93a6.907 6.907 0 1 1 9.767 9.767l-2.234 2.235l.935.998a4.25 4.25 0 0 1-.095 5.912l-3.446 3.446a1.25 1.25 0 1 1-1.768-1.768l3.446-3.446a1.75 1.75 0 0 0 .04-2.434l-.881-.94l-20.165 20.168a6 6 0 0 1-2.76 1.573L5.56 43.96a1.25 1.25 0 0 1-1.521-1.52l2.427-9.486a6 6 0 0 1 1.572-2.758L15 23.232l.149.049l.12.06q.109.06.2.15a.9.9 0 0 1 .2.33l.44 1.37a2.54 2.54 0 0 0 .89 1.35a2.55 2.55 0 0 0 3.8-1.05l.18-.42V25l.35-1.09q.069-.18.2-.32a.9.9 0 0 1 .33-.2l1.36-.44A2.55 2.55 0 0 0 25 20.5a2.52 2.52 0 0 0-.47-1.5"/></svg>
+  </div>
+  <div class="mock-bottom">
+    <div class="mock-tab active">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="22" height="22"><path fill="#c9a050" d="M31.833 13.112a5.36 5.36 0 0 0-2.544-1.805l-2.603-.845a1.028 1.028 0 0 1 0-1.937l2.602-.845a5.36 5.36 0 0 0 3.323-3.33l.022-.064l.845-2.6a1.027 1.027 0 0 1 1.94 0l.845 2.6A5.36 5.36 0 0 0 39.66 7.68l2.602.845l.052.013a1.028 1.028 0 0 1 0 1.937l-2.602.845a5.36 5.36 0 0 0-3.397 3.394l-.846 2.6l-.025.064a1.027 1.027 0 0 1-1.538.433a1.03 1.03 0 0 1-.375-.497l-.846-2.6a5.4 5.4 0 0 0-.852-1.602m14.776 6.872l-1.378-.448a2.84 2.84 0 0 1-1.797-1.796l-.448-1.377a.544.544 0 0 0-1.027 0l-.448 1.377a2.84 2.84 0 0 1-1.77 1.796l-1.378.448a.545.545 0 0 0 0 1.025l1.378.448q.227.075.438.188l.003.015a2.84 2.84 0 0 1 1.357 1.61l.448 1.377a.545.545 0 0 0 1.01.039v-.01l.016-.039l.448-1.377a2.84 2.84 0 0 1 1.798-1.796l1.378-.448a.545.545 0 0 0 0-1.025zM29.93 5q.042-.039.081-.081A20 20 0 0 0 24 4C12.954 4 4 12.954 4 24c0 3.448.873 6.695 2.411 9.528L4.07 41.766c-.375 1.318.843 2.537 2.162 2.162l8.236-2.342A19.9 19.9 0 0 0 24 44c10.16 0 18.551-7.577 19.831-17.388A2.55 2.55 0 0 1 41 26.54a2.54 2.54 0 0 1-.89-1.35l-.44-1.37a.9.9 0 0 0-.2-.33a1 1 0 0 0-.2-.15l-.12-.06l-1.42-.46a2.55 2.55 0 0 1-1.7-2.4c0-.346.075-.687.22-1a3 3 0 0 1-3.47 0a3 3 0 0 1-1.12-1.51l-.84-2.59a3.2 3.2 0 0 0-.54-1A3 3 0 0 0 30 14a3.3 3.3 0 0 0-1.35-.79L26 12.35a3 3 0 0 1-1.44-4.58a3.1 3.1 0 0 1 1.51-1.12l2.57-.83A3.4 3.4 0 0 0 29.93 5"/></svg>
+      <span>灵墨</span>
+    </div>
+    <div class="mock-tab">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6b6458" stroke-width="2" width="22" height="22"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <span>书架</span>
+    </div>
+    <div class="mock-tab">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6b6458" stroke-width="2" width="22" height="22"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>我的</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
